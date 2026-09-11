@@ -1,0 +1,51 @@
+requirements:
+  expression: [(combined_cds_fraction.ncrna or combined_cds_fraction.coding) and (exon_num.multi or exon_num.mono)]
+  parameters:
+    combined_cds_fraction.ncrna: {operator: eq, value: 0}
+    combined_cds_fraction.coding: {operator: gt, value: 0.2}
+    exon_num.mono: {operator: eq, value: 1}
+    exon_num.multi: {operator: gt, value: 1}
+not_fragmentary:
+  expression: [combined_cds_length]
+  parameters:
+    combined_cds_length: {operator: gt, value: 0}
+as_requirements:
+  expression: [cdna_length and combined_cds_fraction]
+  parameters:
+    cdna_length: {operator: ge, value: 100}
+    combined_cds_fraction: {operator: gt, value: 0}
+scoring:
+  external.busco_score: {rescaling: max, multiplier: 20}
+  blast_score: {rescaling: max}
+  cdna_length: {rescaling: max}
+  cds_not_maximal: {rescaling: min}
+  cds_not_maximal_fraction: {rescaling: min}
+  exon_num: {rescaling: max}
+  five_utr_length:
+    filter: {operator: le, value: 500}
+    rescaling: target
+    value: 0
+  five_utr_num:
+    filter: {operator: lt, value: 3}
+    rescaling: target
+    value: 1
+  end_distance_from_junction:
+    filter: {operator: lt, value: 55}
+    rescaling: min
+  number_internal_orfs: {rescaling: target, value: 1}
+  proportion_verified_introns: {rescaling: max}
+  proportion_verified_introns_inlocus: {rescaling: max}
+  retained_fraction: {rescaling: min}
+  retained_intron_num: {rescaling: min}
+  selected_cds_fraction: {rescaling: target, value: 1}
+  selected_cds_intron_fraction: {rescaling: max}
+  selected_cds_length: {rescaling: max}
+  selected_cds_num: {rescaling: max}
+  three_utr_length:
+    filter: {operator: le, value: 500}
+    rescaling: target
+    value: 0
+  three_utr_num:
+    filter: {operator: lt, value: 3}
+    rescaling: target
+    value: 1

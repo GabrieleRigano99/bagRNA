@@ -1,0 +1,9 @@
+helixer.gff	Helixer	True	3	True	True	True
+stringtie.gtf	Stringtie	True	1	False	True	True
+trinity.gff	Trinity	True	-0.5	False	True	True
+aletsch.gtf	Aletsch	True	1	False	True	True
+busco.gff	Busco	True	2	False	True	True
+liftover.gff	Liftover	True	2	False	True	True
+annevo.gtf	Annevo	True	4	True	True	True
+miniprot.gtf	ProteinEvidence	True	3	False	True	True
+transcript_evidence.gff	TranscriptEvidence	True	3	False	True	True

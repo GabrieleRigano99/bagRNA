@@ -1,0 +1,436 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://github.com/bagRNA/bagRNA/blob/main/nextflow_schema.json",
+    "title": "bagRNA pipeline parameters",
+    "description": "End-to-end noncoding-aware eukaryotic genome annotation pipeline.",
+    "type": "object",
+    "definitions": {
+
+        "mandatory_inputs": {
+            "title": "Mandatory inputs",
+            "type": "object",
+            "fa_icon": "fas fa-dna",
+            "description": "Required files for a full structural + functional annotation run.",
+            "required": ["genome_fasta", "species"],
+            "properties": {
+                "genome_fasta": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Genome assembly FASTA file.",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "species": {
+                    "type": "string",
+                    "description": "Species name used for annotation (e.g. Fusarium_oxysporum).",
+                    "fa_icon": "fas fa-microscope"
+                },
+                "prot_evidence": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Protein evidence FASTA file for Miniprot and DIAMOND.",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "busco_lineage": {
+                    "type": "string",
+                    "description": "BUSCO lineage name (e.g. sordariomycetes, fungi_odb10).",
+                    "fa_icon": "fas fa-check-circle"
+                },
+                "star_manifest": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Tab-separated manifest: R1.fastq.gz<TAB>R2.fastq.gz<TAB>sample_id. Repeat flag for multiple manifests.",
+                    "fa_icon": "fas fa-list"
+                },
+                "mikado_config": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Mikado list TSV: one transcript source per line.",
+                    "fa_icon": "fas fa-table"
+                },
+                "submission_template": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "NCBI .sbt submission template file.",
+                    "fa_icon": "fas fa-file-contract"
+                }
+            }
+        },
+
+        "helixer_options": {
+            "title": "Helixer gene prediction",
+            "type": "object",
+            "fa_icon": "fas fa-brain",
+            "description": "One of helixer_gff, helixer_lineage, or no_helixer must be set in full mode.",
+            "properties": {
+                "helixer_lineage": {
+                    "type": "string",
+                    "description": "Helixer lineage for de novo GPU prediction (fungi, land_plant, vertebrate, invertebrate).",
+                    "enum": ["fungi", "land_plant", "vertebrate", "invertebrate"],
+                    "fa_icon": "fas fa-project-diagram"
+                },
+                "helixer_gff": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Precomputed Helixer GFF (skips GPU run).",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "no_helixer": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip Helixer entirely.",
+                    "fa_icon": "fas fa-times-circle"
+                }
+            }
+        },
+
+        "annevo_options": {
+            "title": "ANNEVO gene prediction",
+            "type": "object",
+            "fa_icon": "fas fa-atom",
+            "description": "Settings for the ANNEVO deep-learning gene predictor.",
+            "properties": {
+                "annevo_lineage": {
+                    "type": "string",
+                    "default": "fungi",
+                    "description": "ANNEVO lineage model.",
+                    "enum": ["fungi", "land_plant", "vertebrate", "invertebrate", "magnoliopsida", "mammalia", "insecta"],
+                    "fa_icon": "fas fa-sitemap"
+                },
+                "ram_annevo": {
+                    "type": "string",
+                    "default": "40gb",
+                    "description": "RAM limit for ANNEVO (e.g. 40gb).",
+                    "fa_icon": "fas fa-memory"
+                },
+                "use_gpu": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable GPU for Helixer, ANNEVO, TMbed and SignalP6.",
+                    "fa_icon": "fas fa-microchip"
+                }
+            }
+        },
+
+        "optional_inputs": {
+            "title": "Optional inputs",
+            "type": "object",
+            "fa_icon": "fas fa-plus-circle",
+            "description": "Additional evidence files and external tool directories.",
+            "properties": {
+                "scoring": {
+                    "type": "string",
+                    "default": "scerevisiae.yaml",
+                    "description": "Mikado scoring YAML (built-in name or path to custom file).",
+                    "fa_icon": "fas fa-star"
+                },
+                "transcript_evidence": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Transcript evidence FASTA; aligned with GMAP and passed to Mikado prepare.",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "lifted_annotation": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Liftover annotation GFF (e.g. from Liftoff).",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "phobius_path": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Path to Phobius installation directory (mounted at /opt/phobius).",
+                    "fa_icon": "fas fa-folder"
+                },
+                "databases": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Path to databases directory (EggNOG, KEGG, RFAM).",
+                    "fa_icon": "fas fa-database"
+                },
+                "signalp_path": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Path to signalp-6-package/ directory (mounted at /tools). Omit to skip SignalP6.",
+                    "fa_icon": "fas fa-folder"
+                }
+            }
+        },
+
+        "interproscan6_options": {
+            "title": "InterProScan 6",
+            "type": "object",
+            "fa_icon": "fas fa-search",
+            "description": "Settings for InterProScan 6 functional domain annotation. Leave databases_path empty to use the InterPro Matches API (requires internet).",
+            "properties": {
+                "databases_path": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Path to local InterProScan data directory (e.g. interproscan-5.75-106.0/data). Leave empty to use the InterPro Matches API.",
+                    "fa_icon": "fas fa-database"
+                },
+                "interproscan6_interpro_version": {
+                    "type": "string",
+                    "default": "latest",
+                    "description": "InterPro data version. Pin to match your local databases_path (e.g. 106.0). Use 'latest' for API mode.",
+                    "fa_icon": "fas fa-code-branch"
+                },
+                "interproscan6_apps": {
+                    "type": "string",
+                    "description": "Comma-separated list of analyses to run (e.g. pfam,panther,smart). Leave empty for all available.",
+                    "fa_icon": "fas fa-list-ul"
+                },
+                "interproscan6_goterms": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Include GO term cross-references in InterProScan output.",
+                    "fa_icon": "fas fa-tags"
+                },
+                "interproscan6_pathways": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Include pathway cross-references (MetaCyc, Reactome) in InterProScan output.",
+                    "fa_icon": "fas fa-project-diagram"
+                },
+                "interproscan6_no_matches_api": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Disable the InterPro Matches API lookup (force all analyses to run locally).",
+                    "fa_icon": "fas fa-ban"
+                },
+                "interproscan6_tmbed_gpu_batch_size": {
+                    "type": "integer",
+                    "default": 200,
+                    "description": "TMbed batch size for GPU mode (GPU batch = this × 10). Reduce if GPU runs out of memory.",
+                    "fa_icon": "fas fa-microchip",
+                    "minimum": 10
+                },
+                "no_interpro": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip InterProScan 6 entirely.",
+                    "fa_icon": "fas fa-ban"
+                }
+            }
+        },
+
+        "functional_anno_only_mode": {
+            "title": "Functional annotation only mode",
+            "type": "object",
+            "fa_icon": "fas fa-tags",
+            "description": "Use --functional_anno_only to skip structural annotation and start from an existing protein FASTA.",
+            "properties": {
+                "functional_anno_only": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Run only functional annotation (skips structural).",
+                    "fa_icon": "fas fa-forward"
+                },
+                "protein_fasta": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Protein FASTA file (required with --functional_anno_only).",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "ncrna_fasta": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "ncRNA transcript FASTA (optional; used by Infernal).",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "final_gff": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Structural annotation GFF (optional; passed to funannotate annotate).",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "gbk": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Table2asn .gbf file (optional; passed to AntiSMASH).",
+                    "fa_icon": "fas fa-file-alt"
+                }
+            }
+        },
+
+        "rnaseq_options": {
+            "title": "RNA-seq options",
+            "type": "object",
+            "fa_icon": "fas fa-wave-square",
+            "description": "Parameters controlling STAR alignment and StringTie assembly.",
+            "properties": {
+                "orientation": {
+                    "type": "string",
+                    "default": "FR",
+                    "description": "Read orientation: FR (forward-reverse), RF (reverse-forward), or unstranded.",
+                    "enum": ["FR", "RF", "unstranded"],
+                    "fa_icon": "fas fa-arrows-alt-h"
+                },
+                "strandedness": {
+                    "type": "string",
+                    "default": "secondstrand",
+                    "description": "Library strandedness for StringTie.",
+                    "enum": ["firststrand", "secondstrand", "unstranded"],
+                    "fa_icon": "fas fa-random"
+                }
+            }
+        },
+
+        "ncbi_submission": {
+            "title": "NCBI submission",
+            "type": "object",
+            "fa_icon": "fas fa-paper-plane",
+            "description": "Parameters used for Table2asn and NCBI GenBank submission.",
+            "properties": {
+                "strain": {
+                    "type": "string",
+                    "default": "strain",
+                    "description": "Isolate/strain name.",
+                    "fa_icon": "fas fa-flask"
+                },
+                "locus_tag": {
+                    "type": "string",
+                    "default": "bagRNA",
+                    "description": "Locus tag prefix for GFF features.",
+                    "fa_icon": "fas fa-tag"
+                },
+                "codon_table": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "NCBI genetic code table number (1 = standard, 4 = Mycoplasma/Spiroplasma, etc.).",
+                    "fa_icon": "fas fa-code"
+                }
+            }
+        },
+
+        "performance": {
+            "title": "Performance",
+            "type": "object",
+            "fa_icon": "fas fa-tachometer-alt",
+            "description": "CPU, memory and algorithm tuning parameters.",
+            "properties": {
+                "threads": {
+                    "type": "integer",
+                    "default": 20,
+                    "description": "Number of CPU threads.",
+                    "fa_icon": "fas fa-cogs",
+                    "minimum": 1
+                },
+                "max_memory": {
+                    "type": "string",
+                    "description": "Cap memory for high-resource processes (e.g. 50GB). Useful when Docker is configured with less RAM than physical memory.",
+                    "pattern": "^\\d+(\\.\\d+)?\\s*(B|KB|MB|GB|TB)$",
+                    "fa_icon": "fas fa-memory"
+                },
+                "ram_trinity": {
+                    "type": "string",
+                    "default": "45G",
+                    "description": "Memory limit for Trinity de novo assembly (e.g. 45G).",
+                    "fa_icon": "fas fa-memory"
+                },
+                "limitBAMsortRAM": {
+                    "type": "integer",
+                    "description": "STAR BAM sorting RAM in bytes. Auto-computed as 90% of task memory if not set.",
+                    "fa_icon": "fas fa-memory",
+                    "minimum": 1
+                },
+                "max_intron_length": {
+                    "type": "integer",
+                    "default": 3000,
+                    "description": "Maximum intron length passed to Mikado and STAR.",
+                    "fa_icon": "fas fa-ruler-horizontal",
+                    "minimum": 1
+                },
+                "max_gene_length": {
+                    "type": "integer",
+                    "default": 30000,
+                    "description": "Maximum gene length used in AGAT GFF filtering.",
+                    "fa_icon": "fas fa-ruler-horizontal",
+                    "minimum": 1
+                },
+                "genomeSAindexNbases": {
+                    "type": "integer",
+                    "default": 11,
+                    "description": "STAR genomeSAindexNbases (reduce for small genomes; max 14).",
+                    "fa_icon": "fas fa-sliders-h",
+                    "minimum": 1,
+                    "maximum": 14
+                }
+            }
+        },
+
+        "feature_flags": {
+            "title": "Feature flags",
+            "type": "object",
+            "fa_icon": "fas fa-toggle-on",
+            "description": "Enable or disable optional pipeline steps.",
+            "properties": {
+                "jaccard_clip": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable Jaccard clip in Trinity (recommended for compact genomes).",
+                    "fa_icon": "fas fa-cut"
+                },
+                "no_functional_anno": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip all functional annotation steps.",
+                    "fa_icon": "fas fa-ban"
+                },
+                "no_antismash": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip AntiSMASH secondary metabolite prediction.",
+                    "fa_icon": "fas fa-ban"
+                },
+                "no_effectorp3": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip EffectorP-3 effector prediction.",
+                    "fa_icon": "fas fa-ban"
+                },
+                "no_eggnog": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip EggNOG-mapper annotation.",
+                    "fa_icon": "fas fa-ban"
+                },
+                "no_signalp": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip SignalP6 signal peptide prediction.",
+                    "fa_icon": "fas fa-ban"
+                }
+            }
+        },
+
+        "output_options": {
+            "title": "Output options",
+            "type": "object",
+            "fa_icon": "fas fa-folder-open",
+            "description": "Paths for pipeline results and execution reports.",
+            "properties": {
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "default": "results",
+                    "description": "Directory where results will be published.",
+                    "fa_icon": "fas fa-folder"
+                }
+            }
+        }
+    },
+
+    "allOf": [
+        { "$ref": "#/definitions/mandatory_inputs" },
+        { "$ref": "#/definitions/helixer_options" },
+        { "$ref": "#/definitions/annevo_options" },
+        { "$ref": "#/definitions/optional_inputs" },
+        { "$ref": "#/definitions/interproscan6_options" },
+        { "$ref": "#/definitions/functional_anno_only_mode" },
+        { "$ref": "#/definitions/rnaseq_options" },
+        { "$ref": "#/definitions/ncbi_submission" },
+        { "$ref": "#/definitions/performance" },
+        { "$ref": "#/definitions/feature_flags" },
+        { "$ref": "#/definitions/output_options" }
+    ]
+}

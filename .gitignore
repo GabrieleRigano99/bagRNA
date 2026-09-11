@@ -1,0 +1,17 @@
+# Nextflow
+work/
+.nextflow/
+.nextflow.log*
+results/
+pipeline_info/
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
