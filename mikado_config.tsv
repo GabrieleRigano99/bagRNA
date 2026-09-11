@@ -1,0 +1,6 @@
+helixer.gtf	helixer	True	5	True	True	True
+stringtie.gtf	stringtie	True	1	False	True	True
+trinity.gff	Trinity	True	-0.5	False	True	True
+aletsch.gtf	aletsch	True	2	False	True	True
+busco.gff	busco	True	1	False	True	True
+liftover.gff	liftover	True	1	False	True	True
