@@ -5,7 +5,6 @@
 //
 //   db_dir/
 //   ├── eggnog_data/                             (→ --eggnog_data_dir db_dir/eggnog_data)
-//   ├── ko_list, profiles/                       (→ --databases db_dir)
 //   ├── Rfam.cm, Rfam.clanin                     (→ --databases db_dir)
 //   ├── dbcan/                                   (→ --dbcan_db db_dir/dbcan)
 //   ├── merops/merops_pepunit.dmnd               (→ --merops_db db_dir/merops/merops_pepunit.dmnd)
@@ -44,39 +43,7 @@ process DOWNLOAD_EGGNOG {
     """
 }
 
-// ── 2. KofamScan (KEGG HMM profiles + KO list) ──────────────────────────────
-// ~3 GB; profiles.tar.gz + ko_list.gz from KEGG FTP
-process DOWNLOAD_KOFAMSCAN {
-    tag "kofamscan"
-    label 'process_medium'
-    container 'quay.io/biocontainers/python:3.11'
-
-    publishDir "${params.db_dir}", mode: 'copy'
-
-    output:
-    path "profiles/"
-    path "ko_list"
-
-    script:
-    """
-    python3 - <<'PYEOF'
-import urllib.request
-urllib.request.urlretrieve('ftp://ftp.genome.jp/pub/db/kofam/profiles.tar.gz', 'profiles.tar.gz')
-urllib.request.urlretrieve('ftp://ftp.genome.jp/pub/db/kofam/ko_list.gz', 'ko_list.gz')
-PYEOF
-    tar -xzf profiles.tar.gz
-    gunzip ko_list.gz
-    rm -f profiles.tar.gz ko_list.gz
-    """
-
-    stub:
-    """
-    mkdir -p profiles
-    touch profiles/K00001.hmm ko_list
-    """
-}
-
-// ── 3. Rfam covariance models (for Infernal ncRNA search) ────────────────────
+// ── 2. Rfam covariance models (for Infernal ncRNA search) ────────────────────
 // ~1 GB Rfam.cm; cmpress indexes it for fast cmsearch
 process DOWNLOAD_RFAM {
     tag "rfam"
@@ -107,7 +74,7 @@ process DOWNLOAD_RFAM {
     """
 }
 
-// ── 4. dbCAN databases (CAZyme + CGC annotation) ─────────────────────────────
+// ── 3. dbCAN databases (CAZyme + CGC annotation) ─────────────────────────────
 // CAZy.dmnd, dbCAN.hmm, dbCAN-sub.hmm, tcdb.dmnd, tf HMMs, stp.dmnd
 process DOWNLOAD_DBCAN {
     tag "dbcan"
@@ -152,7 +119,7 @@ process DOWNLOAD_DBCAN {
     """
 }
 
-// ── 5. MEROPS pepunit database (peptidase annotation) ────────────────────────
+// ── 4. MEROPS pepunit database (peptidase annotation) ────────────────────────
 // Downloads pepunit.lib from EBI MEROPS FTP and builds a DIAMOND index
 process DOWNLOAD_MEROPS {
     tag "merops"
@@ -186,7 +153,7 @@ process DOWNLOAD_MEROPS {
     """
 }
 
-// ── 6. PHI-base (pathogen-host interaction database) ─────────────────────────
+// ── 5. PHI-base (pathogen-host interaction database) ─────────────────────────
 // Downloads phi-base_current.fas from GitHub and builds a DIAMOND index
 process DOWNLOAD_PHI_BASE {
     tag "phi_base"
@@ -217,7 +184,7 @@ process DOWNLOAD_PHI_BASE {
     """
 }
 
-// ── 7. Gene Ontology OBO ──────────────────────────────────────────────────────
+// ── 6. Gene Ontology OBO ──────────────────────────────────────────────────────
 process DOWNLOAD_GO_OBO {
     tag "go_obo"
     label 'process_low'
@@ -239,7 +206,7 @@ process DOWNLOAD_GO_OBO {
     """
 }
 
-// ── 8. gene2product curated name database ─────────────────────────────────
+// ── 7. gene2product curated name database ─────────────────────────────────
 // nextgenusfs/gene2product: 34k gene-name → NCBI-compliant product mappings.
 // Used by ANNOTATE_FUNCTIONAL to normalise product names.
 process DOWNLOAD_GENE2PRODUCT {
@@ -265,7 +232,7 @@ process DOWNLOAD_GENE2PRODUCT {
     """
 }
 
-// ── 9. InterProScan 6 member databases ───────────────────────────────────────
+// ── 8. InterProScan 6 member databases ───────────────────────────────────────
 // Downloads all member databases that require local data files (has_data = true
 // in applications.config): AntiFam, CATH, CDD, HAMAP, NCBIFAM, PANTHER, Pfam,
 // PIRSF, PIRSR, PRINTS, PROSITE, SFLD, SMART, SUPERFAMILY (~50 GB total).
@@ -314,7 +281,6 @@ workflow DOWNLOAD_DATABASES {
     ╚══════════════════════════════════════════════════════╝
     Download target   : ${params.db_dir}
     Skip eggNOG       : ${params.skip_eggnog_db}
-    Skip KofamScan    : ${params.skip_kofamscan_db}
     Skip Rfam         : ${params.skip_rfam_db}
     Skip dbCAN        : ${params.skip_dbcan_db}
     Skip MEROPS       : ${params.skip_merops_db}
@@ -325,7 +291,6 @@ workflow DOWNLOAD_DATABASES {
     """
 
     if (!params.skip_eggnog_db)       DOWNLOAD_EGGNOG()
-    if (!params.skip_kofamscan_db)    DOWNLOAD_KOFAMSCAN()
     if (!params.skip_rfam_db)         DOWNLOAD_RFAM()
     if (!params.skip_dbcan_db)        DOWNLOAD_DBCAN()
     if (!params.skip_merops_db)       DOWNLOAD_MEROPS()

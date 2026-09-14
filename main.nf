@@ -214,7 +214,6 @@ ${LN}
 
     ${B}--db_dir${R}                Target directory for all databases  ${DM}(required)${R}
     ${B}--skip_eggnog_db${R}        Skip eggNOG-mapper databases  ${DM}(~15 GB)${R}
-    ${B}--skip_kofamscan_db${R}     Skip KOfam profiles + ko_list  ${DM}(~3 GB; not needed for KO assignment — DeepKOALA replaced KofamScan there — but still the HMM database for DeepKOALA's optional --multi domain-validation mode, not yet wired into the pipeline)${R}
     ${B}--skip_rfam_db${R}          Skip Rfam covariance models  ${DM}(~1 GB)${R}
     ${B}--skip_dbcan_db${R}         Skip dbCAN databases  ${DM}(~2 GB)${R}
     ${B}--skip_merops_db${R}        Skip MEROPS pepunit + DIAMOND index  ${DM}(~1 GB)${R}
