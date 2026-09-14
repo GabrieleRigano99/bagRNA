@@ -4,7 +4,7 @@
 // All databases are placed under db_dir/:
 //
 //   db_dir/
-//   ├── eggnog.db, eggnog_proteins.dmnd, ...    (→ --databases db_dir)
+//   ├── eggnog_data/                             (→ --eggnog_data_dir db_dir/eggnog_data)
 //   ├── ko_list, profiles/                       (→ --databases db_dir)
 //   ├── Rfam.cm, Rfam.clanin                     (→ --databases db_dir)
 //   ├── dbcan/                                   (→ --dbcan_db db_dir/dbcan)
@@ -13,23 +13,28 @@
 
 nextflow.enable.dsl = 2
 
-// ── 1. eggNOG-mapper databases ───────────────────────────────────────────────
-// ~15 GB; eggnog.db + eggnog_proteins.dmnd + annotation files
+// ── 1. eggNOG-mapper databases (v7) ──────────────────────────────────────────
+// ~43 GB; eggnog.db, eggnog_proteins.dmnd, go-basic.obo, taxonomy files.
+// Mirrored from the eggnog-mapper 3.0 (v7 DB) data release — the bundled
+// download_eggnog_data.py only ever fetches v5.0.2, so this pulls the v7
+// tree directly instead. Publishes as db_dir/eggnog_data/; pass that whole
+// directory to --eggnog_data_dir (matches what modules/eggnog.nf, running
+// gabrielerigano/eggnog-mapper:3.0.0-beta6, expects).
 process DOWNLOAD_EGGNOG {
     tag "eggnog"
     label 'process_long'
-    container 'quay.io/biocontainers/eggnog-mapper:2.1.12--pyhdfd78af_2'
+    container 'quay.io/biocontainers/wget:1.20.1'
 
-    publishDir "${params.db_dir}", mode: 'copy',
-        saveAs: { it.replaceFirst('^eggnog_data/', '') }
+    publishDir "${params.db_dir}", mode: 'copy'
 
     output:
-    path "eggnog_data/*"
+    path "eggnog_data"
 
     script:
     """
     mkdir -p eggnog_data
-    download_eggnog_data.py -y --data_dir eggnog_data/
+    wget -q -r -np -nH --cut-dirs=3 -X mmseqs -R "index.html*" -P eggnog_data \\
+        https://data.cgmlab.org/eggnog-mapper/emapper-3.0/data/
     """
 
     stub:
