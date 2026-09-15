@@ -254,7 +254,7 @@ process DOWNLOAD_INTERPROSCAN {
 
     script:
     """
-    download_interproscan.py
+    python3 download_interproscan.py
     """
 
     stub:
