@@ -106,7 +106,7 @@ process DOWNLOAD_DBCAN {
     wget -O peptidase_db.dmnd      "${base}/peptidase_db.dmnd"
     wget -O sulfatlas_db.dmnd      "${base}/sulfatlas_db.dmnd"
 
-    tar -xzf dbCAN-PUL.tar.gz
+    gzip -dc dbCAN-PUL.tar.gz | tar -xf -
     """
 
     stub:
