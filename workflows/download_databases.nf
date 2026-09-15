@@ -92,19 +92,21 @@ process DOWNLOAD_DBCAN {
     mkdir -p dbcan
     cd dbcan
 
-    wget -c --tries=0 --retry-connrefused -O CAZy.dmnd              "${base}/CAZy.dmnd"              &
-    wget -c --tries=0 --retry-connrefused -O dbCAN.hmm              "${base}/dbCAN.hmm"              &
-    wget -c --tries=0 --retry-connrefused -O dbCAN-sub.hmm          "${base}/dbCAN_sub.hmm"          &
-    wget -c --tries=0 --retry-connrefused -O fam-substrate-mapping.tsv "${base}/fam-substrate-mapping.tsv" &
-    wget -c --tries=0 --retry-connrefused -O TCDB.dmnd              "${base}/TCDB.dmnd"              &
-    wget -c --tries=0 --retry-connrefused -O TF.hmm                 "${base}/TF.hmm"                 &
-    wget -c --tries=0 --retry-connrefused -O TF.dmnd                "${base}/TF.dmnd"                &
-    wget -c --tries=0 --retry-connrefused -O STP.hmm                "${base}/STP.hmm"                &
-    wget -c --tries=0 --retry-connrefused -O PUL.dmnd               "${base}/PUL.dmnd"               &
-    wget -c --tries=0 --retry-connrefused -O dbCAN-PUL.xlsx         "${base}/dbCAN-PUL.xlsx"         &
-    wget -c --tries=0 --retry-connrefused -O dbCAN-PUL.tar.gz       "${base}/dbCAN-PUL.tar.gz"       &
-    wget -c --tries=0 --retry-connrefused -O peptidase_db.dmnd      "${base}/peptidase_db.dmnd"      &
-    wget -c --tries=0 --retry-connrefused -O sulfatlas_db.dmnd      "${base}/sulfatlas_db.dmnd"      &
+    wget_opts="-c --tries=0 --retry-connrefused --timeout=30 --read-timeout=60"
+
+    wget \$wget_opts -O CAZy.dmnd              "${base}/CAZy.dmnd"              &
+    wget \$wget_opts -O dbCAN.hmm              "${base}/dbCAN.hmm"              &
+    wget \$wget_opts -O dbCAN-sub.hmm          "${base}/dbCAN_sub.hmm"          &
+    wget \$wget_opts -O fam-substrate-mapping.tsv "${base}/fam-substrate-mapping.tsv" &
+    wget \$wget_opts -O TCDB.dmnd              "${base}/TCDB.dmnd"              &
+    wget \$wget_opts -O TF.hmm                 "${base}/TF.hmm"                 &
+    wget \$wget_opts -O TF.dmnd                "${base}/TF.dmnd"                &
+    wget \$wget_opts -O STP.hmm                "${base}/STP.hmm"                &
+    wget \$wget_opts -O PUL.dmnd               "${base}/PUL.dmnd"               &
+    wget \$wget_opts -O dbCAN-PUL.xlsx         "${base}/dbCAN-PUL.xlsx"         &
+    wget \$wget_opts -O dbCAN-PUL.tar.gz       "${base}/dbCAN-PUL.tar.gz"       &
+    wget \$wget_opts -O peptidase_db.dmnd      "${base}/peptidase_db.dmnd"      &
+    wget \$wget_opts -O sulfatlas_db.dmnd      "${base}/sulfatlas_db.dmnd"      &
     wait
 
     gzip -dc dbCAN-PUL.tar.gz | tar -xf -
