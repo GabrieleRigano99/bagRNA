@@ -67,9 +67,19 @@ workflow FUNCTIONAL_ANNOTATION {
     def phi_base_path = params.phi_base_db ? file(params.phi_base_db)
                       : db_dir            ? resolveDbFile(file("${params.databases}/phi_base"))
                       : null
-    def go_obo_file       = params.go_obo       ? file(params.go_obo)       : no_file
-    def gene2product_file = params.gene2product ? file(params.gene2product) : no_file
+    def go_obo_path        = params.go_obo       ? file(params.go_obo)
+                            : db_dir             ? file("${params.databases}/go-basic.obo")
+                            : null
+    def go_obo_file       = (go_obo_path && go_obo_path.exists()) ? go_obo_path : no_file
+    def gene2product_path  = params.gene2product ? file(params.gene2product)
+                            : db_dir             ? file("${params.databases}/ncbi_cleaned_gene_products.txt")
+                            : null
+    def gene2product_file = (gene2product_path && gene2product_path.exists()) ? gene2product_path : no_file
     def id_map_file       = params.id_map       ? file(params.id_map)       : no_file
+    def eggnog_data_dir    = params.eggnog_data_dir ? params.eggnog_data_dir
+                            : db_dir                ? "${params.databases}/eggnog_data"
+                            : null
+    def eggnog_data_dir_available = eggnog_data_dir && file(eggnog_data_dir).exists()
 
     // ── 41. InterProScan 6 (uses InterPro API by default; set --IPS6_databases_path for local mode) ──
     if (!params.no_interpro) {
@@ -177,9 +187,9 @@ workflow FUNCTIONAL_ANNOTATION {
         ch_interpro_tsv = Channel.value(no_file)
     }
 
-    // eggNOG-mapper v7 runs via its own data dir, independent of --databases
-    if (!params.no_eggnog && params.eggnog_data_dir) {
-        EGGNOG(ch_proteins_faa, species, strain)
+    // eggNOG-mapper v7 data dir: explicit flag first, else --databases/eggnog_data
+    if (!params.no_eggnog && eggnog_data_dir_available) {
+        EGGNOG(ch_proteins_faa, species, strain, eggnog_data_dir)
         ch_eggnog_annotations = EGGNOG.out.eggnog_annotations
     } else {
         if (!params.no_eggnog) {

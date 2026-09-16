@@ -234,6 +234,16 @@ def check_required(param_name, param_val) {
     }
 }
 
+// eggNOG-mapper v7 data dir isn't nested under --databases the way KEGG/RFAM
+// are read directly by name — but -entry SETUP does publish it to
+// db_dir/eggnog_data, so treat that as a fallback for the purposes of
+// deciding whether to warn (the actual fallback is resolved again, the same
+// way, inside functional_annotation.nf and passed into EGGNOG explicitly).
+def eggnogDataDirAvailable() {
+    if (params.eggnog_data_dir) return true
+    return params.databases && file("${params.databases}/eggnog_data").exists()
+}
+
 // ── Main workflow ─────────────────────────────────────────────────────────────
 workflow {
 
@@ -297,7 +307,6 @@ ${GR}               |___/${R}
     ch_submission_template = Channel
         .fromPath(params.submission_template, checkIfExists: true)
 
-
     if (params.functional_anno_only) {
 
         // ── Functional-annotation-only mode ───────────────────────────────────
@@ -319,7 +328,7 @@ ${GR}               |___/${R}
         if (!params.databases) {
             log.warn "No '--databases' path provided. KEGG and RFAM searches will be skipped. (InterProScan 6 still runs via API.)"
         }
-        if (!params.no_eggnog && !params.eggnog_data_dir) {
+        if (!params.no_eggnog && !eggnogDataDirAvailable()) {
             log.warn "No '--eggnog_data_dir' provided. EggNOG will be skipped."
         }
         if (!params.gbk && !params.no_antismash) {
@@ -405,7 +414,7 @@ ${GR}               |___/${R}
                 log.warn "Functional annotation requested but '--databases' path not provided. " +
                          "Set '--no_functional_anno' to suppress this warning or provide the databases path."
             }
-            if (!params.no_eggnog && !params.eggnog_data_dir) {
+            if (!params.no_eggnog && !eggnogDataDirAvailable()) {
                 log.warn "Functional annotation requested but '--eggnog_data_dir' not provided. " +
                          "EggNOG will be skipped. Set '--no_eggnog' to suppress this warning."
             }

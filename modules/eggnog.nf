@@ -8,6 +8,7 @@ process EGGNOG {
     path proteins_faa
     val  species
     val  strain
+    val  eggnog_data_dir
 
     output:
     path "eggnog_output.emapper.annotations", emit: eggnog_annotations
@@ -20,7 +21,7 @@ process EGGNOG {
         -m diamond \\
         --cpu ${task.cpus} \\
         --dmnd_block_size 8 \\
-        --data_dir ${params.eggnog_data_dir} \\
+        --data_dir ${eggnog_data_dir} \\
         --output_dir . \\
         -o eggnog_output \\
         --override

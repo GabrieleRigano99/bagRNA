@@ -284,13 +284,17 @@ workflow STRUCTURAL_ANNOTATION {
     // ── 13. TD2 ORF prediction with homology-guided retention ────────────────
     TRANSDECODER2_LONGORFS(MIKADO_PREPARE.out.prepared_fasta, ch_strandedness)
 
-    // Pfam hmmscan (if Pfam HMM is available via --IPS6_databases_path or --pfam_db)
+    // Pfam hmmscan (if Pfam HMM is available via --pfam_db, --IPS6_databases_path,
+    // or a databases/interproscan/pfam dir downloaded by -entry SETUP)
     def pfam_hmm_file = null
     if (params.pfam_db) {
         pfam_hmm_file = file(params.pfam_db)
-    } else if (params.IPS6_databases_path) {
-        def pfamDir = file("${params.IPS6_databases_path}/pfam").listFiles()?.find { it.isDirectory() }
-        if (pfamDir) pfam_hmm_file = file("${pfamDir}/pfam_a.hmm")
+    } else {
+        def pfamBase = params.IPS6_databases_path ?: (params.databases ? "${params.databases}/interproscan" : null)
+        if (pfamBase) {
+            def pfamDir = file("${pfamBase}/pfam").listFiles()?.find { it.isDirectory() }
+            if (pfamDir) pfam_hmm_file = file("${pfamDir}/pfam_a.hmm")
+        }
     }
 
     if (pfam_hmm_file?.exists()) {
