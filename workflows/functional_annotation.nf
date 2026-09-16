@@ -75,8 +75,11 @@ workflow FUNCTIONAL_ANNOTATION {
     if (!params.no_interpro) {
         def ips6_apps_config = "${projectDir}/subworkflows/interproscan6/conf/applications.config"
         def ips6_apps        = params.interproscan6_apps ? params.interproscan6_apps.tokenize(',') : []
+        def ips6_fallback_dir = db_dir ? file("${params.databases}/interproscan") : null
         def ips6_data_dir    = params.IPS6_databases_path
                                    ? file(params.IPS6_databases_path).toAbsolutePath().toString()
+                                   : (ips6_fallback_dir && ips6_fallback_dir.exists())
+                                   ? ips6_fallback_dir.toAbsolutePath().toString()
                                    : null
         def ips6_outprefix   = "${params.outdir}/functional_annotation/interpro_output"
         file("${params.outdir}/functional_annotation").mkdirs()
