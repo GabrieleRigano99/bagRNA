@@ -69,6 +69,7 @@ include { TABLE2ASN                       } from '../modules/table2asn'
 include { AGAT_EXTRACT_PROTEINS           } from '../modules/agat_extract_proteins'
 include { AGAT_EXTRACT_PROTEINS as AGAT_EXTRACT_PROTEINS_INTERIM } from '../modules/agat_extract_proteins'
 include { AGAT_EXTRACT_NCRNA              } from '../modules/agat_extract_ncrna'
+include { AGAT_MERGE_ABINITIO              } from '../modules/agat_merge_abinitio'
 
 workflow STRUCTURAL_ANNOTATION {
 
@@ -118,9 +119,22 @@ workflow STRUCTURAL_ANNOTATION {
     )
     ch_annevo_gtf = ANNEVO_GFF2GTF.out.annevo_gtf
 
-    // ── 3. STAR genome index ────────────────────────────────────────────────
+    // ── 2c. Barrnap rRNA + tRNAscan-SE tRNA annotation ────────────────────────
+    // Genome-only (no RNA-seq needed) — run unconditionally here so both the
+    // full RNA-seq path and the ab-initio-only (no --star_manifest) path
+    // below can use them without running twice.
+    BARRNAP(ch_fasta)
+    AGAT_FIX_OVERLAPS(BARRNAP.out.barrnap_gff)
+
+    TRNASCAN(ch_fasta)
+
     ch_gtf_plain = ch_annevo_gtf.map { meta, gtf -> gtf }
 
+    // ── 3+. RNA-seq-driven structural annotation (Mikado consensus), or ──────
+    //       ab-initio-only fallback when no --star_manifest is given ─────────
+    if (params.star_manifest) {
+
+    // ── 3. STAR genome index ────────────────────────────────────────────────
     STAR_INDEX(ch_fasta_plain, ch_gtf_plain)
 
     // ── 4. STAR alignment (all samples via manifest, RG tag per sample) ─────
@@ -417,12 +431,6 @@ workflow STRUCTURAL_ANNOTATION {
     FUNANNOTATE_RENAME(FILTER_CODING_MODELS.out.coding_gff, ch_fasta_plain)
     EXTRACT_NONCODING_MODELS(FINAL_JUNCTION_FILTER.out.filtered_gff)
 
-    // ── 19. Barrnap rRNA + tRNAscan-SE tRNA annotation ────────────────────────
-    BARRNAP(ch_fasta)
-    AGAT_FIX_OVERLAPS(BARRNAP.out.barrnap_gff)
-
-    TRNASCAN(ch_fasta)
-
     // ── 22. Merge additional gene models ──────────────────────────────────────
     ch_liftover_input = params.lifted_annotation ? ch_liftover_gff : Channel.value(file("${projectDir}/assets/NO_FILE"))
 
@@ -480,12 +488,46 @@ workflow STRUCTURAL_ANNOTATION {
         ch_fasta_plain
     )
 
+    ch_pre_rename_gff = FIX_MICRO_INTRONS.out.fixed_gff
+
+    } else {
+
+    // ── Ab-initio-only structural annotation (no --star_manifest) ────────────
+    // Skips the entire RNA-seq-driven evidence chain (STAR, Portcullis,
+    // Aletsch/StringTie/Trinity, Mikado, TransDecoder2, Salmon) — there is no
+    // transcript evidence to build any of it from. Gene models come straight
+    // from Helixer + ANNEVO (ab initio) and Miniprot (protein-to-genome);
+    // rRNA/tRNA from Barrnap/tRNAscan-SE; merged and cleaned with AGAT
+    // instead of Mikado's evidence-weighted consensus. No isoform recovery,
+    // no BUSCO-gap recovery (both depend on TransDecoder2/RNA-seq junctions).
+    log.warn "No '--star_manifest' provided: running ab-initio-only structural annotation " +
+             "(Helixer + ANNEVO + Miniprot + Barrnap + tRNAscan-SE, merged with AGAT). " +
+             "No transcript assembly, no Mikado consensus, no isoform/BUSCO-gap recovery."
+
+    AGAT_MERGE_ABINITIO(
+        ch_helixer_gff.map { meta, gff -> gff },
+        ch_annevo_gtf.map  { meta, gtf -> gtf },
+        MINIPROT.out.miniprot_gtf,
+        AGAT_FIX_OVERLAPS.out.barrnap_gff.map { meta, gff -> gff },
+        TRNASCAN.out.trnascan_gff.map { meta, gff -> gff }
+    )
+
+    GFF_AGAT_FILTER(
+        AGAT_MERGE_ABINITIO.out.merged_gff,
+        ch_fasta_plain,
+        params.max_gene_length
+    )
+
+    ch_pre_rename_gff = GFF_AGAT_FILTER.out.filtered_gff
+
+    }
+
     // ── 23. Locus-tag rename + NCBI QC (AGAT preserves product=/isotype=/
     //         anticodon=/Name= attributes that funannotate gff-rename used to
     //         destroy — see modules/reformat_locus_tag_ids.py). Renamed twice:
     //         once before tbl2gbk QC, once after gene removal to close the
     //         numbering gaps it leaves — same two-pass shape funannotate used.
-    AGAT_RENAME_IDS_1(FIX_MICRO_INTRONS.out.fixed_gff, params.locus_tag)
+    AGAT_RENAME_IDS_1(ch_pre_rename_gff, params.locus_tag)
     REFORMAT_LOCUS_TAG_IDS_1(
         AGAT_RENAME_IDS_1.out.agat_renamed_gff,
         params.locus_tag,

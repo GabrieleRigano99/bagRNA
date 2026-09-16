@@ -45,7 +45,6 @@ ${LN}
     ${B}--genome_fasta${R}          Genome assembly FASTA file
     ${B}--prot_evidence${R}         Protein evidence FASTA file
     ${B}--busco_lineage${R}         BUSCO lineage name  ${DM}(e.g. sordariomycetes)${R}
-    ${B}--star_manifest${R}         TSV: R1.fastq.gz\\tR2.fastq.gz\\tsample_id
     ${B}--species${R}               Species name  ${DM}(e.g. "Genus_species")${R}
     ${B}--submission_template${R}   NCBI .sbt submission template
     ${B}--databases${R}             Databases directory  ${DM}(KEGG, RFAM)${R}
@@ -64,6 +63,11 @@ ${LN}
     ${B}--annevo_lineage${R}        Model lineage  ${DM}[${params.annevo_lineage}]${R}
                           ${DM}fungi | land_plant | vertebrate | invertebrate${R}
                           ${DM}magnoliopsida | mammalia | insecta${R}
+
+  ${YL}${B}RNA-SEQ${R}  ${DM}(optional — omit for ab-initio-only structural annotation)${R}
+    ${B}--star_manifest${R}         TSV: R1.fastq.gz\\tR2.fastq.gz\\tsample_id
+                          ${DM}Without it: Helixer + ANNEVO + Miniprot + Barrnap + tRNAscan-SE${R}
+                          ${DM}merged with AGAT — no Mikado consensus, no isoform/BUSCO-gap recovery.${R}
 
 ${LN}
   ${CY}${B}FUNCTIONAL ANNOTATION ONLY MODE${R}
@@ -262,13 +266,18 @@ workflow {
     } else {
         check_required('prot_evidence',       params.prot_evidence)
         check_required('busco_lineage',       params.busco_lineage)
-        check_required('star_manifest',       params.star_manifest)
         check_required('submission_template', params.submission_template)
 
         if (!params.no_helixer && !params.helixer_gff && !params.helixer_lineage) {
             log.error "Helixer input required: provide '--helixer_gff' (precomputed GFF), '--helixer_lineage' (de novo GPU run), or '--no_helixer' to skip."
             log.error "Run with '--help' for usage information."
             System.exit(1)
+        }
+
+        if (!params.star_manifest) {
+            log.warn "No '--star_manifest' provided: structural annotation will run ab-initio-only " +
+                     "(Helixer + ANNEVO + Miniprot + Barrnap + tRNAscan-SE, merged with AGAT) — " +
+                     "no transcript assembly, no Mikado consensus, no isoform/BUSCO-gap recovery."
         }
     }
 
@@ -364,23 +373,31 @@ ${GR}               |___/${R}
             ch_scoring_file = Channel.value(file("${projectDir}/assets/NO_FILE"))
         }
 
-        def manifest_paths = params.star_manifest instanceof List
-            ? params.star_manifest
-            : [ params.star_manifest ]
+        if (params.star_manifest) {
+            def manifest_paths = params.star_manifest instanceof List
+                ? params.star_manifest
+                : [ params.star_manifest ]
 
-        ch_samples = Channel
-            .fromPath(manifest_paths, checkIfExists: true)
-            .splitCsv(header: false, sep: '\t', strip: true)
-            .map { row ->
-                def meta = [ id: row[2] ]
-                def r1   = file(row[0], checkIfExists: true)
-                def r2   = row.size() > 1 && row[1] ? file(row[1], checkIfExists: true) : []
-                return [ meta, r1, r2 ]
-            }
+            ch_samples = Channel
+                .fromPath(manifest_paths, checkIfExists: true)
+                .splitCsv(header: false, sep: '\t', strip: true)
+                .map { row ->
+                    def meta = [ id: row[2] ]
+                    def r1   = file(row[0], checkIfExists: true)
+                    def r2   = row.size() > 1 && row[1] ? file(row[1], checkIfExists: true) : []
+                    return [ meta, r1, r2 ]
+                }
 
-        ch_star_manifest = Channel
-            .fromPath(manifest_paths, checkIfExists: true)
-            .collect()
+            ch_star_manifest = Channel
+                .fromPath(manifest_paths, checkIfExists: true)
+                .collect()
+        } else {
+            // Ab-initio-only mode (no RNA-seq): these channels are never
+            // consumed inside STRUCTURAL_ANNOTATION's ab-initio-only branch,
+            // just need a value to satisfy the take: signature.
+            ch_samples       = Channel.empty()
+            ch_star_manifest = Channel.value(file("${projectDir}/assets/NO_FILE"))
+        }
 
         ch_transcript_evidence = params.transcript_evidence
             ? Channel.fromPath(params.transcript_evidence, checkIfExists: true)
