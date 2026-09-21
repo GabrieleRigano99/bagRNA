@@ -27,6 +27,15 @@ process AGAT_MERGE_ABINITIO {
     done
 
     agat_sp_merge_annotations.pl \$ARGS -o merged_abinitio.gff
+
+    # AGAT doesn't recognize tRNAscan-SE's "pseudogene" gene_biotype (used
+    # for low-confidence tRNA hits) and falls back to a generic "RNA"
+    # transcript type for its child feature. table2asn rejects "RNA" as an
+    # invalid feature type outright. These are always tRNA pseudogenes
+    # (nothing else in this pipeline's inputs produces bare "RNA"), so
+    # relabel them tRNA.
+    awk -F'\\t' 'BEGIN{OFS="\\t"} \$3=="RNA"{\$3="tRNA"} {print}' merged_abinitio.gff > merged_abinitio.fixed.gff
+    mv merged_abinitio.fixed.gff merged_abinitio.gff
     """
 
     stub:

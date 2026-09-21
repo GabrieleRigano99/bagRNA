@@ -8,6 +8,7 @@
 
 nextflow.enable.dsl = 2
 
+include { WRAP_GENOME_FASTA      } from './modules/wrap_genome_fasta'
 include { STRUCTURAL_ANNOTATION  } from './workflows/structural_annotation'
 include { FUNCTIONAL_ANNOTATION  } from './workflows/functional_annotation'
 include { DOWNLOAD_DATABASES     } from './workflows/download_databases'
@@ -309,9 +310,16 @@ ${GR}               |___/${R}
         """.stripIndent()
 
     // ── Build shared channels ─────────────────────────────────────────────────
-    ch_fasta = Channel
+    ch_fasta_raw = Channel
         .fromPath(params.genome_fasta, checkIfExists: true)
         .map { fasta -> [ [id: 'genome', species: params.species], fasta ] }
+
+    // Some downstream tools (AGAT/BioPerl's Bio::DB::Fasta indexer, used by
+    // agat_sp_filter_incomplete_gene_coding_models.pl) hard-cap FASTA lines
+    // at 65,536 chars. Assemblers commonly emit one unwrapped line per contig,
+    // which blows past that on any contig over ~65kb — so always re-wrap here.
+    WRAP_GENOME_FASTA(ch_fasta_raw)
+    ch_fasta = WRAP_GENOME_FASTA.out.fasta
 
     ch_submission_template = Channel
         .fromPath(params.submission_template, checkIfExists: true)

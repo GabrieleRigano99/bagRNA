@@ -8,7 +8,7 @@ process EGGNOG {
     path proteins_faa
     val  species
     val  strain
-    val  eggnog_data_dir
+    path eggnog_data_dir
 
     output:
     path "eggnog_output.emapper.annotations", emit: eggnog_annotations

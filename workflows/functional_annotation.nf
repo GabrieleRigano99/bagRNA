@@ -189,7 +189,7 @@ workflow FUNCTIONAL_ANNOTATION {
 
     // eggNOG-mapper v7 data dir: explicit flag first, else --databases/eggnog_data
     if (!params.no_eggnog && eggnog_data_dir_available) {
-        EGGNOG(ch_proteins_faa, species, strain, eggnog_data_dir)
+        EGGNOG(ch_proteins_faa, species, strain, file(eggnog_data_dir))
         ch_eggnog_annotations = EGGNOG.out.eggnog_annotations
     } else {
         if (!params.no_eggnog) {

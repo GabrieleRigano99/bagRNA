@@ -16,6 +16,7 @@ process HELIXER {
 
     script:
     """
+    export HOME=\$PWD
     fetch_helixer_models.py -l ${lineage}
 
     Helixer.py \\

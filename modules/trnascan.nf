@@ -13,6 +13,7 @@ process TRNASCAN {
 
     script:
     """
+    export TMPDIR=\$PWD
     tRNAscan-SE -E \\
         ${fasta} \\
         --gff trnascan.gff \\

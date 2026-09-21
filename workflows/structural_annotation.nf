@@ -70,6 +70,7 @@ include { AGAT_EXTRACT_PROTEINS           } from '../modules/agat_extract_protei
 include { AGAT_EXTRACT_PROTEINS as AGAT_EXTRACT_PROTEINS_INTERIM } from '../modules/agat_extract_proteins'
 include { AGAT_EXTRACT_NCRNA              } from '../modules/agat_extract_ncrna'
 include { AGAT_MERGE_ABINITIO              } from '../modules/agat_merge_abinitio'
+include { GFFCOMPARE_DEDUP_MINIPROT        } from '../modules/gffcompare_dedup_miniprot'
 
 workflow STRUCTURAL_ANNOTATION {
 
@@ -504,10 +505,17 @@ workflow STRUCTURAL_ANNOTATION {
              "(Helixer + ANNEVO + Miniprot + Barrnap + tRNAscan-SE, merged with AGAT). " +
              "No transcript assembly, no Mikado consensus, no isoform/BUSCO-gap recovery."
 
-    AGAT_MERGE_ABINITIO(
+    GFFCOMPARE_DEDUP_MINIPROT(
         ch_helixer_gff.map { meta, gff -> gff },
         ch_annevo_gtf.map  { meta, gtf -> gtf },
         MINIPROT.out.miniprot_gtf,
+        AGAT_FIX_OVERLAPS.out.barrnap_gff.map { meta, gff -> gff }
+    )
+
+    AGAT_MERGE_ABINITIO(
+        ch_helixer_gff.map { meta, gff -> gff },
+        ch_annevo_gtf.map  { meta, gtf -> gtf },
+        GFFCOMPARE_DEDUP_MINIPROT.out.miniprot_dedup_gtf,
         AGAT_FIX_OVERLAPS.out.barrnap_gff.map { meta, gff -> gff },
         TRNASCAN.out.trnascan_gff.map { meta, gff -> gff }
     )
