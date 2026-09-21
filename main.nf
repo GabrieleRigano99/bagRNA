@@ -363,7 +363,8 @@ ${GR}               |___/${R}
             params.species,
             params.strain,
             params.final_gff as boolean,
-            params.ncrna_fasta as boolean
+            params.ncrna_fasta as boolean,
+            params.gbk as boolean
         )
 
     } else {
@@ -454,6 +455,7 @@ ${GR}               |___/${R}
                 STRUCTURAL_ANNOTATION.out.busco_genome_summary.map { meta, summary -> summary },
                 params.species,
                 params.strain,
+                true,
                 true,
                 true
             )

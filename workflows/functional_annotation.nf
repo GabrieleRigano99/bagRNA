@@ -48,6 +48,7 @@ workflow FUNCTIONAL_ANNOTATION {
     strain                 // val
     run_funannotate        // val(boolean): false skips ANNOTATE_FUNCTIONAL (no --final_gff provided)
     run_infernal           // val(boolean): false skips INFERNAL (no ncRNA FASTA provided)
+    gbk_provided           // val(boolean): false skips ANTISMASH (no real .gbk, ch_gbk is the NO_FILE sentinel)
 
     main:
 
@@ -295,7 +296,7 @@ workflow FUNCTIONAL_ANNOTATION {
     }
 
     // ── 49. AntiSMASH secondary metabolite clusters (optional) ───────────────
-    if (!params.no_antismash) {
+    if (!params.no_antismash && gbk_provided) {
         ANTISMASH(ch_gbk.first(), species, strain)
         ch_antismash_gbk = ANTISMASH.out.antismash_dir
             .map { dir -> file("${dir}/antismash_${species}_${strain}.gbk") }
