@@ -1,0 +1,39 @@
+site_name: bagRNA
+site_description: Nextflow DSL2 pipeline for end-to-end eukaryotic genome annotation
+repo_url: https://github.com/GabrieleRigano99/bagRNA
+repo_name: GabrieleRigano99/bagRNA
+theme:
+  name: material
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.integrate
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage:
+      - Overview & modes: usage.md
+      - Parameters reference: parameters.md
+  - Pipeline steps:
+      - Structural annotation: structural-annotation.md
+      - Functional annotation: functional-annotation.md
+  - Configuration: configuration.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - tables
+  - toc:
+      permalink: true
