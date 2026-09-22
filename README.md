@@ -1,4 +1,4 @@
-# bagRNA
+![BagRNA_logo](BagRNA_logo.png)
 
 A Nextflow DSL2 pipeline for end-to-end eukaryotic genome annotation. It integrates RNA-seq evidence, ab initio gene predictors, structural annotation, and functional annotation into a single reproducible workflow, with all steps running in Docker containers.
 
