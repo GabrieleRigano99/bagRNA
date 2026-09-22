@@ -197,7 +197,7 @@
                     "description": "Disable the InterPro Matches API lookup (force all analyses to run locally).",
                     "fa_icon": "fas fa-ban"
                 },
-                "interproscan6_tmbed_gpu_batch_size": {
+                "interproscan6_tmbed_signalp6_gpu_batch_size": {
                     "type": "integer",
                     "default": 200,
                     "description": "TMbed batch size for GPU mode (GPU batch = this × 10). Reduce if GPU runs out of memory.",

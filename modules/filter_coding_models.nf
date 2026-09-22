@@ -13,15 +13,16 @@ process FILTER_CODING_MODELS {
 
     script:
     """
-    # Identify ncRNA and mRNA without start/stop codons — collect their parent IDs
+    # Identify ncRNA and mRNA without start/stop codons — collect their parent IDs.
+    # Parent= is matched by prefix, not by fixed field position, since attribute
+    # order in column 9 is not guaranteed across Mikado versions.
     awk 'BEGIN{FS=OFS="\\t"}{
         if((\$3=="ncRNA") ||
-           (\$3=="mRNA" && (\$9~"has_start_codon=False" || \$9~"has_stop_codon=False")))
-            print \$9
+           (\$3=="mRNA" && (\$9~"has_start_codon=False" || \$9~"has_stop_codon=False"))) {
+            n=split(\$9, attrs, ";");
+            for (i=1; i<=n; i++) { if (attrs[i] ~ /^Parent=/) { print substr(attrs[i], 8); break } }
+        }
     }' ${mikado_pick_gff} \\
-        | sed 's/;/\\t/g' \\
-        | sed 's/Parent=//g' \\
-        | cut -f2 \\
         > bad_model_ids.txt
 
     # Filter those IDs out of the GFF and remove superlocus lines
