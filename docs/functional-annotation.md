@@ -36,6 +36,3 @@ Replaced KofamScan 2026-09-14 (benchmarked 60–107× faster, higher recall at c
 
 `--functional_anno_only` without `--gbk` warns it will skip AntiSMASH but currently does not. Workaround: pass `--no_antismash` explicitly.
 
-## Docker volume mounts
-
-`RUN_DBCAN`, `TRANSDECODER2_PFAM_SCAN`, and `EGGNOG` mount an extra host path (`/mnt/newvolume` by default, set in `nextflow.config`) so Docker can follow symlinks when databases live on a separate volume. If your databases are under the working directory already, this is a harmless no-op; otherwise edit the `containerOptions` in the matching `withName:` block.
