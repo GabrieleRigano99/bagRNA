@@ -34,10 +34,10 @@ process MERGE_ADDITIONAL_MODELS {
             -a "\$src" \\
             -b evm_merged.gff \\
             -wa -s -v \\
-        | awk 'BEGIN{FS=OFS="\\t"} \$3=="mRNA" || \$3=="tRNA" || \$3=="rRNA" || \$3=="gene" { print \$9 }' \\
-        | sed 's/ID=//g; s/;/\\t/g' \\
-        | cut -f1 \\
-        | grep -v '^\$')
+        | awk 'BEGIN{FS=OFS="\\t"} \$3=="mRNA" || \$3=="tRNA" || \$3=="rRNA" || \$3=="gene" {
+            n=split(\$9, attrs, ";");
+            for (i=1; i<=n; i++) { if (attrs[i] ~ /^ID=/) { print substr(attrs[i], 4); break } }
+        }')
         [ -z "\$ids" ] && return 0
         echo "\$ids" \\
         | grep -F -w -f - "\$src" \\
@@ -57,8 +57,10 @@ process MERGE_ADDITIONAL_MODELS {
     append_all() {
         local src="\$1"
         [ -s "\$src" ] || return 0
-        awk 'BEGIN{FS=OFS="\\t"} \$3=="pseudogene"{print \$9}' "\$src" \\
-            | sed 's/ID=//g; s/;/\\t/g' | cut -f1 > .pseudo_ids.txt
+        awk 'BEGIN{FS=OFS="\\t"} \$3=="pseudogene"{
+            n=split(\$9, attrs, ";");
+            for (i=1; i<=n; i++) { if (attrs[i] ~ /^ID=/) { print substr(attrs[i], 4); break } }
+        }' "\$src" > .pseudo_ids.txt
         grep -v '^\s*#' "\$src" \\
         | if [ -s .pseudo_ids.txt ]; then grep -v -w -F -f .pseudo_ids.txt; else cat; fi \\
         | sed 's/Alias.*//g; s/Name.*\\t//g' \\
