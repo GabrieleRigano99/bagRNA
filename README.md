@@ -76,6 +76,8 @@ nextflow run main.nf \
 
 See `nextflow run main.nf --help` and `nextflow_schema.json` for the full parameter list, or run `nextflow_schema.json` through any [nf-core/nf-validation](https://nextflow-io.github.io/nf-validation/) compatible parameter tool.
 
+**Browser GUI** — prefer a form to the command line? `gui/start_bagrna.sh` starts a local web GUI (stdlib Python only, 127.0.0.1) that fills these parameters, runs or stops the pipeline, and shows live per-process progress. See [`gui/README.md`](gui/README.md).
+
 ## Configuration notes
 
 - **GPU steps** (`--use_gpu`) require the NVIDIA Container Toolkit; Helixer, ANNEVO, and TransDecoder2 use it when requested, DeepKOALA uses it opportunistically only if `--use_gpu` is set elsewhere in the run.
