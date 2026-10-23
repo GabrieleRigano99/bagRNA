@@ -66,7 +66,7 @@ td.n{font:12px ui-monospace,monospace}td.r{text-align:right}
 <main>
 <form id="form" onsubmit="return false">
  <fieldset><legend>What to run</legend>
-  <label>Mode<select id="entry"><option value="run">Run annotation</option><option value="setup">Set up databases (-entry SETUP)</option></select></label></fieldset>
+  <label>Mode<select id="entry"><option value="run">Run annotation</option><option value="structural">Structural annotation only</option><option value="setup">Set up databases (-entry SETUP)</option></select></label></fieldset>
  <fieldset><legend>Nextflow launch environment</legend>
   <label>NXF_VER<input type="text" id="nxf_ver"></label>
   <label>JAVA_HOME<input type="text" id="java_home"></label></fieldset>
@@ -124,18 +124,21 @@ $("profile").innerHTML=PROFILES.map(p=>`<option>${p}</option>`).join("");
 $("advtoggle").onclick=()=>{const b=$("advbox"),s=b.style.display==="block";b.style.display=s?"none":"block";$("advtoggle").textContent=(s?"Show":"Hide")+" advanced options"};
 const val=e=>e.type==="checkbox"?e.checked:e.value;
 function params(){
-  const p={entry:$("entry").value,nxf_ver:$("nxf_ver").value,java_home:$("java_home").value,profile:$("profile").value,resume:$("resume").checked,stub:$("stub").checked};
+  const st=$("entry").value==="structural",p={entry:st?"run":$("entry").value,nxf_ver:$("nxf_ver").value,java_home:$("java_home").value,profile:$("profile").value,resume:$("resume").checked,stub:$("stub").checked};
   for(const f of FIELDS)p[f[0]]=val($("f_"+f[0]));
+  if(st)p.no_functional_anno=true;  // structural-only = a normal run without functional annotation
   return p}
 // remember the form across reloads
 try{const saved=JSON.parse(store.get("form")||"{}");
   for(const [k,v] of Object.entries(saved)){const e=$("f_"+k)||$(k);if(e)e.type==="checkbox"?e.checked=v:e.value=v}}catch(e){}
 
 /* ---- mode switch + live command preview (server builds the command) ---- */
-function applyMode(){const m=$("entry").value;
+function applyMode(){const st=$("entry").value==="structural",m=st?"run":$("entry").value;
+  if(st)$("f_no_functional_anno").checked=true;
   document.querySelectorAll("[data-mode]").forEach(e=>e.style.display=e.dataset.mode===m?"":"none");
   // a group fieldset is shown only if it still has a visible field
   for(const fs of Object.values(groups))fs.style.display=[...fs.querySelectorAll("label")].some(l=>l.dataset.mode===m)?"":"none";
+  if(st&&groups["Databases & tools"])groups["Databases & tools"].style.display="none";  // functional-only inputs
   $("advtoggle").style.display=m==="run"?"":"none";$("advbox").style.display=m==="setup"||$("advtoggle").textContent.startsWith("Hide")?"block":"none"}
 let pt=null;
 function preview(){clearTimeout(pt);pt=setTimeout(async()=>{
