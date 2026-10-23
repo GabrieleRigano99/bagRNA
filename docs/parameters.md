@@ -51,7 +51,7 @@ Generated from `nextflow_schema.json`. Also available via `nextflow run main.nf 
 | `--interproscan6_goterms` | boolean | Include GO term cross-references. |
 | `--interproscan6_pathways` | boolean | Include pathway cross-references (MetaCyc, Reactome). |
 | `--interproscan6_no_matches_api` | boolean | Disable InterPro Matches API lookup — force all analyses local. |
-| `--interproscan6_tmbed_gpu_batch_size` | integer | TMbed GPU batch size (GPU batch = this × 10). Lower if GPU OOMs. |
+| `--interproscan6_tmbed_signalp6_gpu_batch_size` | integer | TMbed/SignalP6 GPU batch size (GPU batch = this × 10). Lower if GPU OOMs. |
 | `--no_interpro` | boolean | Skip InterProScan6 entirely. |
 
 ## Functional-annotation-only mode
