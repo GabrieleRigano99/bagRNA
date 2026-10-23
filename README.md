@@ -4,6 +4,8 @@ A Nextflow DSL2 pipeline for end-to-end eukaryotic genome annotation. It integra
 
 ![bagRNA pipeline overview](bagRNA_pipeline.png)
 
+Full documentation: https://gabrielerigano99.github.io/bagRNA/
+
 ## Requirements
 
 - [Nextflow](https://www.nextflow.io/) `>=25.04.6,<26`
