@@ -24,7 +24,7 @@ Nextflow fingerprints directory inputs by path, not content. Use `stageAs: 'fixe
 
 ## Docker symlinks
 
-Nextflow stages inputs as symlinks. If the real file lives outside the working directory (e.g. `/mnt/newvolume`), add `-v /mnt/newvolume:/mnt/newvolume` to `containerOptions` so Docker can follow the symlink chain.
+Nextflow stages inputs as symlinks. If the real file lives outside the working directory and outside the database parameters' directories, pass its location with `--extra_docker_mounts /path/a,/path/b` so Docker can follow the symlink chain.
 
 ## Resource sizing
 

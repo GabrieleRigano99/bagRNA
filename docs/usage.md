@@ -57,9 +57,6 @@ nextflow run main.nf \
     --IPS6_databases_path /path/to/ips6
 ```
 
-!!! warning "AntiSMASH"
-    Without `--gbk` (a table2asn `.gbf` file), this mode warns it will skip AntiSMASH but currently does not skip it correctly. Pass `--no_antismash` explicitly as a workaround until the underlying `.nf` fix lands.
-
 ## 4. Resume a run
 
 Add `-resume` to any of the above with the same parameters:

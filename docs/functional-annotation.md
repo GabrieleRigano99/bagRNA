@@ -32,10 +32,6 @@ Runs automatically after structural annotation in full mode, or standalone with 
 
 Replaced KofamScan 2026-09-14 (benchmarked 60–107× faster, higher recall at comparable precision, cross-validated against eggNOG's independent KO calls on 2 species). Runs fine on CPU — GPU access is opportunistic (`--gpus all` only if `--use_gpu` is set elsewhere), unlike the pipeline's other `use_gpu`-labeled steps. Its optional `--multi` domain-validation mode (not currently wired in) would need the KOfam HMM database re-added.
 
-## AntiSMASH known issue
-
-`--functional_anno_only` without `--gbk` warns it will skip AntiSMASH but currently does not. Workaround: pass `--no_antismash` explicitly.
-
 ## Docker volume mounts
 
-`RUN_DBCAN`, `TRANSDECODER2_PFAM_SCAN`, and `EGGNOG` mount an extra host path (`/mnt/newvolume` by default, set in `nextflow.config`) so Docker can follow symlinks when databases live on a separate volume. If your databases are under the working directory already, this is a harmless no-op; otherwise edit the `containerOptions` in the matching `withName:` block.
+`RUN_DBCAN`, `TRANSDECODER2_PFAM_SCAN`, and `EGGNOG` bind-mount their database directories (taken from `--dbcan_db`, `--eggnog_data_dir`, and `--pfam_db` / `--IPS6_databases_path` / `--databases`) so Docker can follow staged symlinks. Add further paths with `--extra_docker_mounts /path/a,/path/b`.
