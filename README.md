@@ -101,6 +101,7 @@ assets/                     Mikado scoring YAML, static reference tables, sentin
 bin/                        Helper scripts (Python/Perl/Groovy) invoked from process scripts
 lib/                        Groovy/Java dependencies used by the InterProScan6 subworkflow
 docker/                     Dockerfiles for custom images (eggNOG-mapper, TransDecoder2, DeepKOALA, report generator)
+gui/                        Local browser GUI (stdlib Python): fill parameters, run/stop, live progress, load results
 ```
 
 ## License
