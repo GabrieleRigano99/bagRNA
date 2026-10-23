@@ -58,36 +58,3 @@ table. Stop sends SIGTERM to Nextflow's whole process group, so its containers s
 Run status is one of `idle`, `running`, `done`, `failed`, `stopped` (you pressed Stop).
 The run starts in the pipeline directory, so a relative `--outdir run_X` resolves there.
 
-## Where the data comes from
-
-Nothing is hand-typed, so the GUI follows the pipeline when it changes.
-
-| GUI part | Source |
-|---|---|
-| Form fields, defaults, groups | `params {}` in `nextflow.config` (wins on any conflict), described by `nextflow_schema.json` |
-| Required-field rules | `check_required()` in `main.nf` |
-| Process names (also un-ellipsizing `STR…`) | `process` and `include … as` in `modules/`, `workflows/`, `subworkflows/`, plus static `tag "…"` values |
-| Stage of each process | `include` blocks of `workflows/*.nf`; `subworkflows/` counts as InterProScan 6 |
-| Progress lines | `STATUS_RE` and `PEND_RE` in `bagrna_web.py` (edit these if Nextflow's output format changes) |
-| Results tiles | `<outdir>/annotation_report/*_annotation_summary.tbl`; without it, compleasm `summary.txt` and final GFF feature counts |
-
-## Safety
-
-- Binds `127.0.0.1` only. Every request must carry a local `Host` header (DNS-rebinding guard) and every POST a
-  local `Origin` (cross-site launch guard).
-- Arguments are passed to `nextflow` as a list, never through a shell.
-- One run at a time. No authentication, since only the local machine can connect.
-
-## Known limits
-
-- Rows are keyed by process name, so processes that exist twice inside InterProScan 6
-  (`RUN_PFSEARCH`, `PARSE_PFSEARCH`, `REPORT_NO_MATCHES`) share one row.
-- `-stub-run` cannot pass the InterProScan 6 `SPLIT_FASTA` step, so a stub run of full functional annotation
-  fails there. Use `--no_functional_anno` for stub tests.
-- No RNA-seq coverage tile (that figure is not in the summary table).
-- Slurm and SGE profiles are passed through as `-profile`, but have not been tested on a cluster.
-
-## Testing the parser
-
-`./start_bagrna.sh --replay path/to/run.log` shows a saved Nextflow log as a finished run, so the parser and
-page can be tested without running anything.
