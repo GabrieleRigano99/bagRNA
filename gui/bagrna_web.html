@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>bagRNA Runner</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1d2330;--mut:#6b7385;--line:#dfe3ea;--acc:#1f8f5f;--warn:#c98a00;--bad:#c0392b;--info:#2a6fdb}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#12151c;--card:#1b2029;--fg:#e6e9ef;--mut:#8b93a5;--line:#2c3340;--acc:#3fbf8a;--warn:#e0a82e;--bad:#ef6b5b;--info:#6aa3ff}}
+:root[data-theme=dark]{--bg:#12151c;--card:#1b2029;--fg:#e6e9ef;--mut:#8b93a5;--line:#2c3340;--acc:#3fbf8a;--warn:#e0a82e;--bad:#ef6b5b;--info:#6aa3ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{margin:0;font-size:22px;color:var(--acc)} header .sub{color:var(--mut)}
+main{display:grid;grid-template-columns:minmax(380px,520px) 1fr;gap:16px;padding:16px 20px;align-items:start}
+@media (max-width:1000px){main{grid-template-columns:1fr}}
+fieldset{background:var(--card);border:1px solid var(--line);border-radius:8px;margin:0 0 12px;padding:8px 14px 12px;min-width:0}
+legend{font-weight:600;padding:0 6px}
+label{display:grid;grid-template-columns:200px 1fr;gap:8px;align-items:center;margin:6px 0}
+label small{display:block;color:var(--mut);font-size:11px;line-height:1.25}
+label.chk{grid-template-columns:auto 1fr;justify-content:start}
+input[type=text],select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit}
+button{padding:8px 18px;border:0;border-radius:6px;font:inherit;font-weight:600;color:#fff;background:var(--acc);cursor:pointer}
+button.stop{background:var(--bad)} button.alt{background:transparent;color:var(--info);border:1px solid var(--info)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.pick{display:flex;gap:6px}.pick button{padding:5px 10px;font-weight:500}
+#errs{color:var(--bad);white-space:pre-line;margin-bottom:8px}
+#advbox{display:none}
+#status{font-size:16px}#meta{color:var(--mut)}
+pre{margin:6px 0;white-space:pre-wrap;word-break:break-word;font:12px/1.4 ui-monospace,monospace;background:var(--bg);padding:8px;border-radius:6px;max-height:240px;overflow:auto}
+.bar{height:14px;background:var(--line);border-radius:7px;overflow:hidden;margin:6px 0}
+.bar>div{height:100%;width:0;background:var(--info);transition:width .4s}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{padding:3px 8px;text-align:left;border-bottom:1px solid var(--line)}
+td.n{font:12px ui-monospace,monospace}td.r{text-align:right}
+.st{font-weight:600}.st.done{color:var(--acc)}.st.running{color:var(--warn)}.st.failed{color:var(--bad)}.st.cached,.st.pending{color:var(--mut)}
+#tbl{max-height:360px;overflow:auto}
+.lane{display:flex;align-items:center;gap:6px;margin:8px 0;flex-wrap:wrap}
+.lane>span.ln{width:96px;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.chip{border:1.5px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;background:var(--bg);min-width:96px;position:relative}
+.chip b{display:block;font:600 12px ui-monospace,monospace}.chip small{color:var(--mut);font-size:11px}
+.chip.pending{border-style:dashed;color:var(--mut)}
+.chip.done{border-color:var(--acc)}.chip.done b::before{content:"\2713 ";color:var(--acc)}
+.chip.cached{border-color:var(--mut)}.chip.cached b::before{content:"\21BA ";color:var(--mut)}
+.chip.running{border-color:var(--warn);animation:pulse 1.4s infinite}
+.chip.failed{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--bg))}.chip.failed b::before{content:"\2717 ";color:var(--bad)}
+.chip.sel{outline:2px solid var(--info)}
+@keyframes pulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--warn) 30%,transparent)}}
+@media (prefers-reduced-motion:reduce){.chip.running{animation:none}}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.tile{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.tile b{display:block;font-size:20px}.tile span{color:var(--mut);font-size:12px}
+.chart h4{margin:12px 0 4px}.chart svg{width:100%;height:auto;display:block}
+.chart text{fill:var(--fg);font:11px system-ui,sans-serif}.chart .m{fill:var(--mut)}
+.leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-top:4px}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+#log{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;height:320px;overflow:auto;white-space:pre;font:12px/1.4 ui-monospace,monospace}
+#log .e{color:var(--bad)}
+#dlg{border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);width:min(760px,94vw);padding:16px}
+#dlg::backdrop{background:#0008}
+#ents{height:380px;overflow:auto;border:1px solid var(--line);border-radius:6px;margin:8px 0}
+#ents div{padding:5px 10px;cursor:pointer;border-bottom:1px solid var(--line)}
+#ents div:hover{background:var(--bg)}#ents .sel{background:var(--info);color:#fff}
+#cur{font:12px ui-monospace,monospace;word-break:break-all}
+</style></head><body>
+<header><h1>bagRNA</h1><span class="sub">end-to-end noncoding-aware genome annotation</span>
+ <button type="button" class="alt" id="theme" style="margin-left:auto;padding:4px 10px">Theme</button></header>
+<main>
+<form id="form" onsubmit="return false">
+ <fieldset><legend>What to run</legend>
+  <label>Mode<select id="entry"><option value="run">Run annotation</option><option value="setup">Set up databases (-entry SETUP)</option></select></label></fieldset>
+ <fieldset><legend>Nextflow launch environment</legend>
+  <label>NXF_VER<input type="text" id="nxf_ver"></label>
+  <label>JAVA_HOME<input type="text" id="java_home"></label></fieldset>
+ <div id="groups"></div>
+ <fieldset><legend>Run settings (execution)</legend>
+  <label>Execution profile<select id="profile"></select></label>
+  <label class="chk"><input type="checkbox" id="resume"> -resume (reuse cached results)</label>
+  <label class="chk"><input type="checkbox" id="stub"> -stub-run (dry run, no computation)</label></fieldset>
+ <button type="button" class="alt" id="advtoggle">Show advanced options</button>
+ <div id="advbox" style="margin-top:12px"></div>
+</form>
+<section style="min-width:0">
+ <div class="row"><button id="run">Run</button><button id="stop" class="stop" disabled>Stop</button>
+  <button id="open" class="alt">Open output folder</button><button id="openrep" class="alt" disabled>Open report</button>
+  <button id="loadres" class="alt">Load results</button></div>
+ <div id="errs"></div>
+ <fieldset><legend>Command</legend><pre id="cmd"></pre></fieldset>
+ <div id="status"><b>Idle</b></div><div id="meta"></div>
+ <div class="bar"><div id="pb"></div></div><div id="plabel" style="color:var(--mut)">0 / 0 process instances complete</div>
+ <fieldset style="margin-top:12px"><legend>Pipeline flow <small style="font-weight:400;color:var(--mut)">(click a step to filter the log)</small></legend><div id="flow"><span style="color:var(--mut)">Starts once the run begins.</span></div></fieldset>
+ <div id="fail"></div>
+ <fieldset id="resbox" style="display:none"><legend>Results</legend><div id="results"></div></fieldset>
+ <fieldset style="margin-top:12px"><legend>Processes</legend><div id="tbl"><span style="color:var(--mut)">Starts once the run begins.</span></div></fieldset>
+ <fieldset style="margin-top:12px"><legend>Log</legend><div id="log"></div></fieldset>
+</section></main>
+<dialog id="dlg"><div id="cur"></div><div id="ents"></div>
+ <div class="row" style="margin:0"><button type="button" class="alt" id="up">&uarr; Up</button>
+  <button type="button" id="ok">Select</button><button type="button" class="alt" id="cancel">Cancel</button>
+  <span id="hint" style="color:var(--mut)"></span></div></dialog>
+<script>
+// field = [name,label,default,kind,group,mode,description]; kind = "text" | "bool" | [enum options]
+const FIELDS=__FIELDS__, BROWSE=__BROWSE__, PROFILES=__PROFILES__, ENV=__ENV__, $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---- theme ---- */
+const root=document.documentElement;
+if(store.get("theme"))root.dataset.theme=store.get("theme");
+$("theme").onclick=()=>{const dark=root.dataset.theme?root.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches;
+  root.dataset.theme=dark?"light":"dark";store.set("theme",root.dataset.theme)};
+
+/* ---- form (generated from FIELDS) ---- */
+const groups={};
+for(const [name,label,def,kind,group,mode,desc] of FIELDS){
+  const host=group.startsWith("Advanced")?$("advbox"):$("groups");
+  if(!groups[group]){const fs=document.createElement("fieldset");fs.dataset.mode=mode;fs.innerHTML=`<legend>${esc(group)}</legend>`;host.appendChild(fs);groups[group]=fs}
+  const l=document.createElement("label"),d=`<small>${esc(desc)}</small>`;l.dataset.mode=mode;
+  if(kind==="bool"){l.className="chk";l.innerHTML=`<span><input type="checkbox" id="f_${name}"${def?" checked":""}> ${esc(label)}${d}</span>`}
+  else if(Array.isArray(kind)){l.innerHTML=`<span>${esc(label)}${d}</span><select id="f_${name}">${kind.map(o=>`<option value="${o}"${o===def?" selected":""}>${o||"(none)"}</option>`).join("")}</select>`}
+  else if(BROWSE[name])l.innerHTML=`<span>${esc(label)}${d}</span><span class="pick"><input type="text" id="f_${name}" value="${esc(def)}"><button type="button" class="alt" data-b="${name}">Browse</button></span>`;
+  else l.innerHTML=`<span>${esc(label)}${d}</span><input type="text" id="f_${name}" value="${esc(def)}">`;
+  groups[group].appendChild(l)}
+$("nxf_ver").value=ENV.nxf_ver;$("java_home").value=ENV.java_home;
+$("profile").innerHTML=PROFILES.map(p=>`<option>${p}</option>`).join("");
+$("advtoggle").onclick=()=>{const b=$("advbox"),s=b.style.display==="block";b.style.display=s?"none":"block";$("advtoggle").textContent=(s?"Show":"Hide")+" advanced options"};
+const val=e=>e.type==="checkbox"?e.checked:e.value;
+function params(){
+  const p={entry:$("entry").value,nxf_ver:$("nxf_ver").value,java_home:$("java_home").value,profile:$("profile").value,resume:$("resume").checked,stub:$("stub").checked};
+  for(const f of FIELDS)p[f[0]]=val($("f_"+f[0]));
+  return p}
+// remember the form across reloads
+try{const saved=JSON.parse(store.get("form")||"{}");
+  for(const [k,v] of Object.entries(saved)){const e=$("f_"+k)||$(k);if(e)e.type==="checkbox"?e.checked=v:e.value=v}}catch(e){}
+
+/* ---- mode switch + live command preview (server builds the command) ---- */
+function applyMode(){const m=$("entry").value;
+  document.querySelectorAll("[data-mode]").forEach(e=>e.style.display=e.dataset.mode===m?"":"none");
+  // a group fieldset is shown only if it still has a visible field
+  for(const fs of Object.values(groups))fs.style.display=[...fs.querySelectorAll("label")].some(l=>l.dataset.mode===m)?"":"none";
+  $("advtoggle").style.display=m==="run"?"":"none";$("advbox").style.display=m==="setup"||$("advtoggle").textContent.startsWith("Hide")?"block":"none"}
+let pt=null;
+function preview(){clearTimeout(pt);pt=setTimeout(async()=>{
+  const j=await (await fetch("/api/preview",{method:"POST",body:JSON.stringify(params())})).json();
+  $("cmd").textContent=j.cmd||"(fill the required fields)";$("errs").textContent=(j.errors||[]).map(e=>"• "+e).join("\n")},150)}
+$("form").addEventListener("input",()=>{store.set("form",JSON.stringify(params()));applyMode();preview()});
+applyMode();preview();
+
+/* ---- file browser ---- */
+let bName=null,bPath="",bSel=[];
+async function bLoad(p){
+  const j=await (await fetch("/api/ls?path="+encodeURIComponent(p))).json();
+  bPath=j.path;bSel=[];$("cur").textContent=j.path;$("up").onclick=()=>bLoad(j.parent);
+  $("ents").innerHTML="";
+  for(const e of j.entries){const d=document.createElement("div");d.textContent=(e.dir?"\u{1F4C1} ":"\u{1F4C4} ")+e.name;
+    const full=j.path.replace(/\/$/,"")+"/"+e.name;
+    d.onclick=()=>{if(e.dir)return bLoad(full);
+      if(BROWSE[bName]==="dir")return;
+      if(BROWSE[bName]==="file"){bSel=[full];$("ents").querySelectorAll(".sel").forEach(x=>x.classList.remove("sel"))}
+      else{const i=bSel.indexOf(full);i<0?bSel.push(full):bSel.splice(i,1)}
+      d.classList.toggle("sel",bSel.includes(full))};
+    $("ents").appendChild(d)}}
+document.addEventListener("click",ev=>{const n=ev.target.dataset&&ev.target.dataset.b;if(!n)return;
+  bName=n;const cur=$("f_"+n).value.split(",").pop().trim();
+  $("hint").textContent=BROWSE[n]==="dir"?"Open the folder, then Select":BROWSE[n]==="file"?"Click a file, then Select":"Click files to toggle (multi-select)";
+  bLoad(cur);$("dlg").showModal()});
+$("cancel").onclick=()=>$("dlg").close();
+$("ok").onclick=()=>{const e=$("f_"+bName);
+  if(BROWSE[bName]==="dir")e.value=bPath;
+  else if(bSel.length){const old=e.value.trim();e.value=BROWSE[bName]==="files"&&old?old+","+bSel.join(","):bSel.join(",")}
+  e.dispatchEvent(new Event("input",{bubbles:true}));$("dlg").close()};
+
+/* ---- log ---- */
+let allLog=[],shown=0,procFilter=[];
+const lineOk=l=>(!procFilter.length||procFilter.includes(l[2]));
+function renderLog(full){const log=$("log"),stick=log.scrollTop+log.clientHeight>=log.scrollHeight-20;
+  if(full){log.innerHTML="";shown=0}
+  for(;shown<allLog.length;shown++){const l=allLog[shown];if(!lineOk(l))continue;const sp=document.createElement("span");if(l[1])sp.className="e";sp.textContent=l[0];log.appendChild(sp)}
+  if(stick||full)log.scrollTop=log.scrollHeight}
+
+/* ---- flow diagram: stages come from the server (workflows/*.nf includes); structural sub-lanes by name ---- */
+const SUBLANES=[["Genome QC",/^COMPLEASM_GENOME$/],["Ab initio",/HELIXER|ANNEVO|MINIPROT/],
+ ["RNA-seq alignment",/^STAR_|SAMTOOLS|SUBSAMPLE|INFER_STRAND|PORTCULLIS|MERGE_JUNCTIONS|MINIMAP2/],
+ ["Transcript assembly",/ALETSCH|STRINGTIE|GMAP|^TRINITY$|CORRECT_MISORIENTED|FILTER_BY_JUNCTIONS/],
+ ["Evidence",/MIKADO_PREPARE|DIAMOND|TRANSDECODER|CPC2|SALMON|COMPLEASM_TRANSCRIPTS|EXTERNAL_SCORES|TD2_/],
+ ["Gene selection",/MIKADO_(SERIALISE|PICK)/],["ncRNA",/BARRNAP|TRNASCAN|EXTRACT_NONCODING/]];
+const STAGE_LANES={Setup:"Database setup",Functional:"Functional annotation","InterProScan 6":"InterProScan 6",Other:"Other"};
+let rows=[],chipRows={};
+function groupState(rs){
+  if(rs.some(r=>r.state==="failed"))return"failed";
+  if(rs.some(r=>r.state==="running"))return"running";
+  if(rs.every(r=>r.state==="pending"))return"pending";
+  if(rs.some(r=>r.state==="pending"))return"running";
+  if(rs.every(r=>r.state==="cached"))return"cached";
+  return"done"}
+function drawFlow(){
+  if(!rows.length)return;
+  const lanes={},add=(lane,chip,r)=>(((lanes[lane]??={})[chip]??=[]).push(r));
+  for(const r of rows){
+    if(r.stage==="Structural"){const l=SUBLANES.find(x=>x[1].test(r.name));add(l?l[0]:"Cleanup & output",r.name,r)}
+    else if(r.stage==="InterProScan 6")add("InterProScan 6","InterProScan 6",r);
+    else add(STAGE_LANES[r.stage]||r.stage,r.name,r)}
+  chipRows={};
+  const LO=[...SUBLANES.map(x=>x[0]),"Cleanup & output","Database setup","Functional annotation","InterProScan 6"],ix=n=>LO.indexOf(n)<0?99:LO.indexOf(n);
+  $("flow").innerHTML=Object.entries(lanes).sort((a,b)=>ix(a[0])-ix(b[0])).map(([ln,chips])=>`<div class="lane"><span class="ln">${esc(ln)}</span>`+Object.entries(chips).map(([cn,rs])=>{
+    const label=cn.startsWith("InterProScan 6")?"InterProScan 6 · "+rs.length+" steps":cn;chipRows[cn]=rs.map(r=>r.name);
+    const st=groupState(rs),d=rs.reduce((a,r)=>a+r.done,0),t=rs.reduce((a,r)=>a+r.total,0);
+    const s0=Math.min(...rs.map(r=>r.start??Infinity)),ends=rs.map(r=>r.end),e1=ends.every(x=>x!=null)?Math.max(...ends):elapsed;
+    const meta=st==="pending"?"waiting":`${d}/${t}`+(st==="cached"?" cached":s0<Infinity?" · "+mmss(e1-s0):"");
+    return `<div class="chip ${st}${procFilter.length&&procFilter.join()===chipRows[cn].join()?" sel":""}" data-c="${esc(cn)}"><b>${esc(label)}</b><small>${meta}</small></div>`}).join("")+"</div>").join("")}
+$("flow").onclick=e=>{const c=e.target.closest(".chip");if(!c)return;
+  const ps=chipRows[c.dataset.c];procFilter=procFilter.join()===ps.join()?[]:ps;renderLog(true);drawFlow()};
+
+/* ---- failures ---- */
+function drawFail(fs){
+  $("fail").innerHTML=fs.map(f=>`<fieldset style="border-color:var(--bad)"><legend style="color:var(--bad)">Failed: ${esc(f.proc)}</legend>
+   <pre>${esc(f.err||"(no .command.err found)")}</pre>
+   <details><summary>command</summary><pre>${esc(f.cmd)}</pre></details>
+   <small style="color:var(--mut)">${esc(f.workdir)}</small></fieldset>`).join("")}
+
+/* ---- results dashboard (annotation_report/*_annotation_summary.tbl) ---- */
+let lastRes=null;
+const C={S:"#2e9e6b",D:"#3b82c4",F:"#d9a21b",M:"#cf4b3f"};
+const num=v=>parseFloat(String(v).replace(/,/g,""));
+const bp=n=>n>=1e6?(n/1e6).toFixed(2)+" Mb":n>=1e3?(n/1e3).toFixed(1)+" kb":n+" bp";
+const tile=(v,l)=>`<div class="tile"><b>${v}</b><span>${l}</span></div>`;
+function hbars(items,fmt=v=>v){ // [[label,value]]
+  const mx=Math.max(...items.map(i=>i[1]),1e-9),H=18,W=640,L=190,R=70;
+  return `<svg viewBox="0 0 ${W} ${items.length*H+4}">`+items.map(([l,v],i)=>{const w=(W-L-R)*v/mx;
+    return `<text class="m" x="${L-6}" y="${i*H+13}" text-anchor="end">${esc(l)}</text><rect x="${L}" y="${i*H+2}" width="${w}" height="${H-5}" rx="2" fill="var(--info)"/><text x="${L+w+5}" y="${i*H+13}">${fmt(v)}</text>`}).join("")+"</svg>"}
+function drawResults(r){
+  lastRes=r;$("resbox").style.display="block";
+  if(!r||!r.found){$("results").innerHTML=`<span style="color:var(--mut)">No annotation_report/*_annotation_summary.tbl in ${esc(r?r.outdir:"")} (the run may not have reached the report stage).</span>`;return}
+  const G=Object.fromEntries(Object.entries(r.groups).map(([k,v])=>[k,Object.fromEntries(v)])),g=G.genome||{},f=G.structural_feature||{};
+  let h='<div class="tiles">';
+  if(g.contigs)h+=tile(g.contigs,"contigs")+tile(bp(num(g.total_bp)),"genome size")+tile(bp(num(g.N50)),"N50");
+  if(f.gene)h+=tile(num(f.gene).toLocaleString(),"genes (incl. ncRNA)");
+  if(f.mRNA)h+=tile(num(f.mRNA).toLocaleString(),"mRNAs");
+  for(const k of ["ncRNA","tRNA","rRNA"])if(f[k])h+=tile(num(f[k]).toLocaleString(),k);
+  h+="</div>";
+  if(g.busco_complete_single_pct!=null){const p={S:num(g.busco_complete_single_pct),D:num(g.busco_complete_duplicated_pct),F:num(g.busco_fragmented_pct),M:num(g.busco_missing_pct)},nm={S:"Single",D:"Duplicated",F:"Fragmented",M:"Missing"};
+    let x=0;const segs=Object.keys(nm).map(k=>{const w=6.4*(p[k]||0),s=`<rect x="${x}" y="0" width="${w}" height="26" fill="${C[k]}"/>`;x+=w;return s}).join("");
+    h+=`<div class="chart"><h4>Gene completeness · ${esc(g.busco_lineage||"")} (${g.busco_total_groups||"?"} genes)</h4><svg viewBox="0 0 640 26">${segs}</svg><div class="leg">${Object.keys(nm).map(k=>`<span><i style="background:${C[k]}"></i>${nm[k]} ${(p[k]||0).toFixed(1)}%</span>`).join("")}</div></div>`}
+  const pct=Object.entries(G.functional_annotation||{}).filter(([k,v])=>/With|Secreted|effector|CAZyme|MEROPS|PHI|Transport/i.test(k)&&/\(/.test(v)).map(([k,v])=>[k,parseFloat(v.match(/\(([\d.]+)%/)[1])]);
+  if(pct.length)h+=`<div class="chart"><h4>Functional annotation coverage (% of genes)</h4>${hbars(pct,v=>v.toFixed(1)+"%")}</div>`;
+  const top=(cat,n,title)=>{const it=Object.entries(G[cat]||{}).map(([k,v])=>[k,num(v)]).sort((a,b)=>b[1]-a[1]).slice(0,n);
+    return it.length?`<div class="chart"><h4>${title}</h4>${hbars(it)}</div>`:""};
+  h+=top("cog_category",12,"COG categories")+top("cazyme_class",8,"CAZyme classes")+top("antismash_bgc_type",8,"Biosynthetic gene clusters")+top("phi_base_phenotype",6,"PHI-base phenotypes");
+  const km=Object.values(G.kegg_module_completeness||{});
+  if(km.length)h+=`<p>KEGG modules: <b>${km.filter(v=>/\(100\.0%\)/.test(v)).length}</b> of ${km.length} fully complete</p>`;
+  $("results").innerHTML=h}
+async function loadResults(){drawResults(await (await fetch("/api/results?outdir="+encodeURIComponent(params().outdir))).json())}
+$("loadres").onclick=loadResults;
+const openF=file=>fetch("/api/open",{method:"POST",body:JSON.stringify({outdir:params().outdir,file})});
+$("open").onclick=()=>openF("");
+$("openrep").onclick=async()=>{const r=lastRes&&lastRes.found?lastRes:await (await fetch("/api/results?outdir="+encodeURIComponent(params().outdir))).json();
+  const f=(r.files||[]).find(x=>x.endsWith(".html"));if(f)openF("annotation_report/"+f)};
+
+/* ---- process table ---- */
+const ORDER={running:0,failed:1,pending:2,done:3,cached:4};
+function drawTable(rows){
+  if(!rows.length)return;
+  $("tbl").innerHTML="<table><tr><th>Process</th><th>Tag</th><th class=r>Done</th><th>State</th><th class=r>Time</th></tr>"+
+   rows.map((r,i)=>[r,i]).sort((a,b)=>ORDER[a[0].state]-ORDER[b[0].state]||a[1]-b[1]).map(([r])=>
+    `<tr><td class=n>${esc(r.name)}</td><td>${esc(r.tag)}</td><td class=r>${r.done}/${r.total}</td><td class="st ${r.state}">${r.state}</td><td class=r>${r.start==null?"":r.state==="cached"?"":mmss((r.end??elapsed)-r.start)}</td></tr>`).join("")+"</table>"}
+
+/* ---- run control + polling ---- */
+const mmss=t=>{t=Math.max(0,Math.round(t));const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
+  return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(s).padStart(2,"0")};
+let since=0,timer=null,elapsed=0,prev="idle";
+$("run").onclick=async()=>{
+  const j=await (await fetch("/api/run",{method:"POST",body:JSON.stringify(params())})).json();
+  $("errs").textContent=(j.errors||[]).map(e=>"• "+e).join("\n");
+  if(!j.errors.length){since=0;allLog=[];procFilter=[];renderLog(true);$("tbl").innerHTML="";$("fail").innerHTML="";$("resbox").style.display="none";poll()}};
+$("stop").onclick=()=>fetch("/api/stop",{method:"POST"});
+async function poll(){
+  clearTimeout(timer);
+  let s;try{s=await (await fetch("/api/state?since="+since)).json()}catch(e){timer=setTimeout(poll,3000);return}
+  allLog.push(...s.log);since=s.next;renderLog(false);rows=s.rows;drawFlow();drawFail(s.failures);
+  $("openrep").disabled=s.status!=="done";if(prev==="running"&&s.status==="done")loadResults();prev=s.status;
+  const run=s.status==="running";elapsed=s.elapsed;drawTable(s.rows);
+  const pct=s.total?100*s.done/s.total:0;$("pb").style.width=pct+"%";
+  $("pb").style.background=s.status==="failed"?"var(--bad)":s.status==="done"?"var(--acc)":"var(--info)";
+  $("plabel").textContent=`${s.done} / ${s.total} process instances complete (${pct.toFixed(0)}%)`;
+  $("run").disabled=run;$("stop").disabled=!run;
+  let meta=s.status==="idle"?"":`elapsed ${mmss(s.elapsed)}`;
+  if(run&&pct>=10)meta+=` · ETA ~${mmss(s.elapsed*(100-pct)/pct)} (rough)`;$("meta").textContent=meta;
+  $("status").innerHTML="<b>"+({idle:"Idle",running:"Running...",done:"Completed successfully",failed:"Exited with code "+s.code,stopped:"Stopped by user"}[s.status])+"</b>";
+  timer=setTimeout(poll,run?1000:3000)}
+poll();
+</script></body></html>
