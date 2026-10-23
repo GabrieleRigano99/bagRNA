@@ -83,7 +83,7 @@ See `nextflow run main.nf --help` and `nextflow_schema.json` for the full parame
 ## Configuration notes
 
 - **GPU steps** (`--use_gpu`) require the NVIDIA Container Toolkit; Helixer, ANNEVO, and TransDecoder2 use it when requested, DeepKOALA uses it opportunistically only if `--use_gpu` is set elsewhere in the run.
-- **Extra Docker volume mounts:** a few processes (`RUN_DBCAN`, `TRANSDECODER2_PFAM_SCAN`, `EGGNOG`) mount an extra host path (`/mnt/newvolume` in `nextflow.config`) so Docker can follow symlinks when large databases live on a separate volume/mount from the working directory. If your databases live under the working directory already, these mounts are harmless no-ops; otherwise edit the `containerOptions` in the corresponding `withName:` block in `nextflow.config` to point at wherever your databases actually live.
+- **Docker volume mounts:** `RUN_DBCAN`, `EGGNOG` and `TRANSDECODER2_PFAM_SCAN` bind-mount their database directories (taken from `--dbcan_db`, `--eggnog_data_dir`, and `--pfam_db` / `--IPS6_databases_path` / `--databases`) so Docker can follow the symlinks Nextflow stages inputs as. If symlinks into another location still dangle inside a container, add that path with `--extra_docker_mounts /path/a,/path/b`.
 - **Resource sizing:** `process_high`/`process_gpu`/`process_long` labels default to (physical RAM − 4 GB); override with `--max_memory` if your Docker daemon has a lower memory limit than the host.
 - **Execution profiles:** `-profile standard` (default, local executor), `-profile slurm`, `-profile sge` for cluster execution.
 
