@@ -302,7 +302,7 @@ class Run:
             if errors:
                 return errors
             env = os.environ.copy()
-            for k, key in (("NXF_VER", "nxf_ver"), ("JAVA_HOME", "java_home")):
+            for k, key in (("NXF_VER", "nxf_ver"), ("JAVA_HOME", "java_home"), ("NXF_WORK", "nxf_work")):
                 if str(params.get(key) or "").strip():
                     env[k] = params[key].strip()
             self.reset()
@@ -445,7 +445,8 @@ class Handler(BaseHTTPRequestHandler):
                     .replace("__PROFILES__", json.dumps(PROFILES))
                     .replace("__ENV__", json.dumps({
                         "nxf_ver": os.environ.get("NXF_VER", NXF_VER),
-                        "java_home": os.environ.get("JAVA_HOME", JAVA_HOME)})))
+                        "java_home": os.environ.get("JAVA_HOME", JAVA_HOME),
+                        "nxf_work": os.environ.get("NXF_WORK", "")})))
             self._send(page, "text/html; charset=utf-8")
         elif path == "/api/state":
             m = re.search(r"since=(\d+)", query)

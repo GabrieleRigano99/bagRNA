@@ -69,7 +69,8 @@ td.n{font:12px ui-monospace,monospace}td.r{text-align:right}
   <label>Mode<select id="entry"><option value="run">Run annotation</option><option value="structural">Structural annotation only</option><option value="setup">Set up databases (-entry SETUP)</option></select></label></fieldset>
  <fieldset><legend>Nextflow launch environment</legend>
   <label>NXF_VER<input type="text" id="nxf_ver"></label>
-  <label>JAVA_HOME<input type="text" id="java_home"></label></fieldset>
+  <label>JAVA_HOME<input type="text" id="java_home"></label>
+  <label>NXF_WORK<input type="text" id="nxf_work" placeholder="blank = ./work"></label></fieldset>
  <div id="groups"></div>
  <fieldset><legend>Run settings (execution)</legend>
   <label>Execution profile<select id="profile"></select></label>
@@ -119,12 +120,12 @@ for(const [name,label,def,kind,group,mode,desc] of FIELDS){
   else if(BROWSE[name])l.innerHTML=`<span>${esc(label)}${d}</span><span class="pick"><input type="text" id="f_${name}" value="${esc(def)}"><button type="button" class="alt" data-b="${name}">Browse</button></span>`;
   else l.innerHTML=`<span>${esc(label)}${d}</span><input type="text" id="f_${name}" value="${esc(def)}">`;
   groups[group].appendChild(l)}
-$("nxf_ver").value=ENV.nxf_ver;$("java_home").value=ENV.java_home;
+$("nxf_ver").value=ENV.nxf_ver;$("java_home").value=ENV.java_home;$("nxf_work").value=ENV.nxf_work;
 $("profile").innerHTML=PROFILES.map(p=>`<option>${p}</option>`).join("");
 $("advtoggle").onclick=()=>{const b=$("advbox"),s=b.style.display==="block";b.style.display=s?"none":"block";$("advtoggle").textContent=(s?"Show":"Hide")+" advanced options"};
 const val=e=>e.type==="checkbox"?e.checked:e.value;
 function params(){
-  const st=$("entry").value==="structural",p={entry:st?"run":$("entry").value,nxf_ver:$("nxf_ver").value,java_home:$("java_home").value,profile:$("profile").value,resume:$("resume").checked,stub:$("stub").checked};
+  const st=$("entry").value==="structural",p={entry:st?"run":$("entry").value,nxf_ver:$("nxf_ver").value,java_home:$("java_home").value,nxf_work:$("nxf_work").value,profile:$("profile").value,resume:$("resume").checked,stub:$("stub").checked};
   for(const f of FIELDS)p[f[0]]=val($("f_"+f[0]));
   if(st)p.no_functional_anno=true;  // structural-only = a normal run without functional annotation
   return p}

@@ -17,6 +17,10 @@ cd gui
 ./start_bagrna.sh --port 9000      # default port is 8765
 ```
 
+Machine-specific settings: put `export NXF_WORK=/path/to/work` (the Nextflow work directory; `-resume` only
+finds a cache in the same one) in `gui/local.env`. It is sourced by `start_bagrna.sh`, ignored by git, and shows up
+in the "NXF_WORK" field of the launch-environment box. Blank means `./work`.
+
 Remote machine: `ssh -L 8765:localhost:8765 <host>`, start the GUI there, open http://localhost:8765 locally.
 
 Requirements: Python 3 (stdlib only), Nextflow, Java 21, and Docker. Tick `-stub-run` in the GUI to try it
