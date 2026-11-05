@@ -34,4 +34,4 @@ Replaced KofamScan 2026-09-14 (benchmarked 60–107× faster, higher recall at c
 
 ## Docker volume mounts
 
-`RUN_DBCAN`, `TRANSDECODER2_PFAM_SCAN`, and `EGGNOG` bind-mount their database directories (taken from `--dbcan_db`, `--eggnog_data_dir`, and `--pfam_db` / `--IPS6_databases_path` / `--databases`) so Docker can follow staged symlinks. Add further paths with `--extra_docker_mounts /path/a,/path/b`.
+`RUN_DBCAN`, `TRANSDECODER2_PFAM_SCAN`, and `EGGNOG` mount an extra host path (`/mnt/newvolume` by default, set in `nextflow.config`) so Docker can follow symlinks when databases live on a separate volume. If your databases are under the working directory already, this is a harmless no-op; otherwise edit the `containerOptions` in the matching `withName:` block.

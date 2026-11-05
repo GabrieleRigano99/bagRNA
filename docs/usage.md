@@ -57,6 +57,9 @@ nextflow run main.nf \
     --IPS6_databases_path /path/to/ips6
 ```
 
+!!! note "AntiSMASH"
+    Without `--gbk` (a table2asn `.gbf` file), AntiSMASH is skipped.
+
 ## 4. Resume a run
 
 Add `-resume` to any of the above with the same parameters:

@@ -15,7 +15,7 @@ process REFORMAT_LOCUS_TAG_IDS {
 
     script:
     """
-    python3 ${workflow.projectDir}/bin/reformat_locus_tag_ids.py \\
+    reformat_locus_tag_ids.py \\
         ${agat_renamed_gff} \\
         ${locus_tag} \\
         ${output_name}

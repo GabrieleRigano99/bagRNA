@@ -13,7 +13,7 @@ process CLEAN_ISOFORMS_GFF {
 
     script:
     """
-    python3 ${workflow.projectDir}/bin/clean_isoforms_gff.py \\
+    clean_isoforms_gff.py \\
         ${augmented_gff} \\
         isoforms_cleaned.gff3
     """

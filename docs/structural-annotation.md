@@ -69,3 +69,7 @@
 | `FIX_MICRO_INTRONS` | spuriously short introns |
 | `AGAT_RENAME_IDS` (×2) | ID renaming passes |
 | `AGAT_MERGE_ABINITIO` | merges ab initio predictor models into final GFF |
+
+## Known issue
+
+**BUSCO 622109 dropout** — gene `mikado.CBS145945_7G858` (7 exons, ANNEVO-based) is correctly picked by Mikado but silently removed between Mikado pick and the final GFF. Under investigation.

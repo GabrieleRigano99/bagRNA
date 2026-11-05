@@ -14,7 +14,7 @@ process FINAL_JUNCTION_FILTER {
 
     script:
     """
-    python3 ${workflow.projectDir}/bin/final_junction_filter.py \\
+    final_junction_filter.py \\
         ${cleaned_gff} \\
         ${portcullis_beds} \\
         isoforms_juncfiltered.gff3

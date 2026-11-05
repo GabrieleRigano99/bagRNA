@@ -155,13 +155,13 @@ Notes:
 
 ### Step 6. Test first with a dry run (about 1 minute)
 
-Add `-stub-run` to your command. It pretends to run each step, so you find typos and missing files without waiting hours. Container images may still download the first time.
+Add `-preview` to your command. It checks your options and builds the workflow graph without running any step, so you find typos and missing files in seconds. (`-stub-run` also works for structural-only runs, but it stops at the InterProScan 6 `SPLIT_FASTA` step in full functional runs.)
 
 ```bash
-nextflow run main.nf  <your options>  -stub-run
+nextflow run main.nf  <your options>  -preview
 ```
 
-When the dry run ends with no error, run the same command again without `-stub-run`.
+When the dry run ends with no error, run the same command again without `-preview`.
 
 ### Step 7. Run it for real
 

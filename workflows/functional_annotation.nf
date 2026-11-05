@@ -325,7 +325,8 @@ workflow FUNCTIONAL_ANNOTATION {
             go_obo_file,
             ch_antismash_gbk,
             gene2product_file,
-            id_map_file
+            id_map_file,
+            ch_proteins_faa
         )
         ch_annotation_table = ANNOTATE_FUNCTIONAL.out.annotation_table
         ch_annotated_gff    = ANNOTATE_FUNCTIONAL.out.annotated_gff
@@ -336,6 +337,7 @@ workflow FUNCTIONAL_ANNOTATION {
             GFF3_TO_TBL(
                 ch_annotated_gff,
                 ch_annotation_table,
+                ch_fasta,
                 species,
                 strain
             )

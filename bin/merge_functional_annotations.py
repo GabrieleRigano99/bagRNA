@@ -36,7 +36,8 @@ def new_entry():
         'nog_og': '', 'nog_desc': '',
         'interpro': set(), 'pfam': set(), 'panther': '',
         'signalp': False, 'tm_tmbed': 0, 'tm_phobius': 0, 'sp_phobius': False,
-        'effector': '', 'cazyme': '', 'caz_tools': 0, 'pul': '',
+        'effector': '', 'effector_raw': '', 'effector_tier': '', 'aa_len': 0, 'cys': 0,
+        'cazyme': '', 'caz_tools': 0, 'pul': '',
         'mer_hit': '', 'mer_fam': '', 'tc': '',
         'phi_acc': '', 'phi_gene': '', 'phi_pheno': '',
         'rfam': set(),
@@ -62,6 +63,9 @@ def ncbi_product(name, symbol=''):
     if symbol and name.lower() == symbol.strip().lower():
         return 'hypothetical protein'
     return name if name.lower() not in _BAD_PRODUCT else 'hypothetical protein'
+
+
+VIRULENCE_PHENOTYPES = ('reduced_virulence', 'loss_of_pathogenicity', 'increased_virulence', 'effector')
 
 
 def is_secreted(a):
@@ -106,6 +110,7 @@ def parse_args():
                                       'lookup covering KOs from both KofamScan and eggNOG')
     p.add_argument('--infernal')
     p.add_argument('--effectorp3')
+    p.add_argument('--proteins', help='Final protein FASTA; length and Cys count for effector tiers')
     p.add_argument('--dbcan-overview')
     p.add_argument('--dbcan-cgc')
     p.add_argument('--merops')
@@ -403,7 +408,7 @@ def main():
                     continue
                 if c[1].strip().startswith('Y') or c[2].strip().startswith('Y'):
                     a = annotations[resolve(c[0].split()[0])]
-                    a['effector'] = c[4].strip() if len(c) > 4 else 'Effector'
+                    a['effector'] = a['effector_raw'] = c[4].strip() if len(c) > 4 else 'Effector'
 
     # ── 6. dbCAN overview ───────────────────────────────────────────────────
     if not is_absent(args.dbcan_overview):
@@ -616,6 +621,44 @@ def main():
         for a in annotations.values():
             a['go_propagated'] = set(a['go'])
 
+    # EffectorP3 is trained on secreted proteins: keep its call only for
+    # proteins with a signal peptide and no transmembrane helix
+    for a in annotations.values():
+        if not is_secreted(a):
+            a['effector'] = ''
+
+    # ── Effector candidate tiers ────────────────────────────────────────────
+    # high:          secreted (SP+, no TMD), < 400 aa, EffectorP positive
+    # intermediate:  secreted, not high, and >= 400 aa, < 4 Cys or a Pfam/InterPro domain
+    # non-canonical: not secreted (no SP, or SP + TMD), EffectorP positive or a
+    #                PHI-base virulence phenotype
+    # ponytail: no GPI-anchor filter yet (no predictor installed); add NetGPI to exclude GPI proteins from "high"
+    # ponytail: length/Cys come from the gene's longest isoform, while SP/TM/EffectorP are OR'ed over isoforms
+    if not is_absent(args.proteins):
+        seqs, cur = defaultdict(list), None
+        with open(args.proteins) as fh:
+            for line in fh:
+                if line.startswith('>'):
+                    cur = line[1:].split()[0]
+                elif cur:
+                    seqs[cur].append(line.strip().rstrip('*'))
+        for pid, parts in seqs.items():
+            s = ''.join(parts)
+            a = annotations[resolve(pid)]
+            if len(s) > a['aa_len']:
+                a['aa_len'], a['cys'] = len(s), s.upper().count('C')
+        for a in annotations.values():
+            if not a['aa_len']:
+                continue
+            vir = any(k in a['phi_pheno'] for k in VIRULENCE_PHENOTYPES)
+            if is_secreted(a):
+                if a['aa_len'] < 400 and a['effector_raw']:
+                    a['effector_tier'] = 'high'
+                elif a['aa_len'] >= 400 or a['cys'] < 4 or a['pfam'] or a['interpro']:
+                    a['effector_tier'] = 'intermediate'
+            elif a['effector_raw'] or vir:
+                a['effector_tier'] = 'non-canonical'
+
     # ── Write functional_annotation.tsv ─────────────────────────────────────
     COLS = [
         'gene_id', 'mrna_ids', 'product', 'gene_symbol',
@@ -623,7 +666,7 @@ def main():
         'COG_category', 'eggNOG_OG', 'eggNOG_description',
         'InterPro_accessions', 'Pfam_domains', 'PANTHER',
         'Secreted', 'SignalP', 'TM_helices_TMbed', 'TM_helices_Phobius', 'SP_Phobius',
-        'EffectorP_class',
+        'EffectorP_class', 'Effector_tier', 'Protein_length', 'Cys_count',
         'CAZyme_family', 'CAZyme_tools_agree', 'PUL_cluster',
         'MEROPS_hit', 'MEROPS_family', 'TC_id',
         'PHIbase_accession', 'PHIbase_gene', 'PHIbase_phenotype',
@@ -642,7 +685,9 @@ def main():
                 '|'.join(sorted(a['interpro'])), '|'.join(sorted(a['pfam'])), a['panther'],
                 'Y' if is_secreted(a) else '', 'Y' if a['signalp'] else '',
                 str(a['tm_tmbed']), str(a['tm_phobius']), 'Y' if a['sp_phobius'] else '',
-                a['effector'], a['cazyme'], str(a['caz_tools']), a['pul'],
+                a['effector'], a['effector_tier'],
+                str(a['aa_len']) if a['aa_len'] else '', str(a['cys']) if a['aa_len'] else '',
+                a['cazyme'], str(a['caz_tools']), a['pul'],
                 a['mer_hit'], a['mer_fam'], a['tc'],
                 a['phi_acc'], a['phi_gene'], a['phi_pheno'],
                 '|'.join(sorted(a['rfam'])),
@@ -768,6 +813,9 @@ def main():
         ('TM proteins (TMbed)', sum(1 for a in annotations.values() if a['tm_tmbed'] > 0)),
         ('TM proteins (Phobius)', sum(1 for a in annotations.values() if a['tm_phobius'] > 0)),
         ('Predicted effectors', sum(1 for a in annotations.values() if a['effector'])),
+        ('Effector candidates: high', sum(1 for a in annotations.values() if a['effector_tier'] == 'high')),
+        ('Effector candidates: intermediate', sum(1 for a in annotations.values() if a['effector_tier'] == 'intermediate')),
+        ('Effector candidates: non-canonical', sum(1 for a in annotations.values() if a['effector_tier'] == 'non-canonical')),
         ('CAZymes (dbCAN)', sum(1 for a in annotations.values() if a['cazyme'])),
         ('Genes in PUL clusters', sum(1 for a in annotations.values() if a['pul'])),
         ('MEROPS peptidases', sum(1 for a in annotations.values() if a['mer_hit'])),

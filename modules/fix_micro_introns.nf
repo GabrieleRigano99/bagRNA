@@ -14,7 +14,7 @@ process FIX_MICRO_INTRONS {
 
     script:
     """
-    python3 ${workflow.projectDir}/bin/fix_micro_introns.py \\
+    fix_micro_introns.py \\
         ${recovered_gff} \\
         ${fasta} \\
         struct_microfixed.gff3

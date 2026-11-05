@@ -14,7 +14,7 @@ process FILTER_UNSUPPORTED {
 
     script:
     """
-    python3 ${workflow.projectDir}/bin/filter_unsupported.py \\
+    filter_unsupported.py \\
         ${filtered_pick_gff} \\
         ${portcullis_beds} \\
         unsupported_filtered.gff3

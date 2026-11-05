@@ -30,11 +30,10 @@ process GFF_CLEAN_FILTER {
         -o tmp_sorted_structural \\
         > genes_to_fix_or_remove.txt 2>&1 || true
 
-    # Remove problematic gene models identified by tbl2gbk
-    tail -n +3 genes_to_fix_or_remove.txt \\
-        | cut -f1 \\
-        | grep -v -F -w -f - ${renamed_gff} \\
-        > genes_kept.gff || cp ${renamed_gff} genes_kept.gff
+    # Drop only the broken isoforms (internal stop / intron < 10 nt) of the genes
+    # flagged by tbl2gbk; a gene goes only when none of its isoforms survive
+    tail -n +3 genes_to_fix_or_remove.txt | cut -f1 > flagged_genes.txt
+    drop_bad_isoforms.py ${renamed_gff} ${fasta} flagged_genes.txt genes_kept.gff
 
     # Safety guard: the word-boundary grep above can catastrophically match a
     # locus-tag fragment and remove EVERY gene — e.g. an invalid hyphenated

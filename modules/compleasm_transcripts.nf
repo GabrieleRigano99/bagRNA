@@ -27,7 +27,7 @@ process COMPLEASM_TRANSCRIPTS {
     # (not nested under a lineage subdir as genome mode does); locate it robustly.
     full_table=\$(find compleasm_prot_out -name full_table.tsv | head -1)
 
-    python3 ${workflow.projectDir}/bin/busco_scores.py \\
+    busco_scores.py \\
         "\$full_table" \\
         mb_downloads/${lineage_full}/scores_cutoff \\
         > busco_scores.tsv

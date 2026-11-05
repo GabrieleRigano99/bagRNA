@@ -22,7 +22,7 @@ process KEGG_KO_INFO {
     script:
     def cache_arg = kegg_cache.name != 'NO_FILE' ? "--cache kegg_annotations.tsv" : ''
     """
-    python3 ${workflow.projectDir}/bin/fetch_kegg_ko_info.py \\
+    fetch_kegg_ko_info.py \\
         --kofamscan kofamscan_result.tsv \\
         --eggnog input_eggnog \\
         ${cache_arg} \\

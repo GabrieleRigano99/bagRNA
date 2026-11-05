@@ -13,6 +13,7 @@ process GFF3_TO_TBL {
     input:
     path final_gff
     path annotation_tsv
+    path fasta               // genome, used to mark CDSs lacking start/stop codons as partial
     val  species
     val  strain
 
@@ -22,10 +23,11 @@ process GFF3_TO_TBL {
     script:
     prefix = "${species}_${strain}".replaceAll(/\s+/, '_')
     """
-    python3 ${workflow.projectDir}/bin/gff3_to_tbl.py \\
+    gff3_to_tbl.py \\
         ${final_gff} \\
         ${annotation_tsv} \\
-        ${prefix}.tbl
+        ${prefix}.tbl \\
+        ${fasta}
     """
 
     stub:

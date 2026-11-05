@@ -15,7 +15,7 @@ process ADD_BUSCO_ISOFORMS {
 
     script:
     """
-    python3 ${workflow.projectDir}/bin/add_busco_isoforms.py \\
+    add_busco_isoforms.py \\
         ${augmented_gff} \\
         ${busco_gff} \\
         ${missing_ids} \\

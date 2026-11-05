@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Convert GFF3 + bagRNA annotation TSV to NCBI feature table (.tbl) for table2asn.
 
-Usage: gff3_to_tbl.py <genome.gff3> <functional_annotation.tsv> <out.tbl>
+Usage: gff3_to_tbl.py <genome.gff3> <functional_annotation.tsv> <out.tbl> [genome.fasta]
+
+With genome.fasta, CDSs lacking an ATG start or a stop codon are written as
+5'/3' partial ('<' / '>'), together with their mRNA and gene.
 
 The feature table format spec:
     https://www.ncbi.nlm.nih.gov/genbank/feature_table/
@@ -13,9 +16,37 @@ interval on its own line before the qualifiers.
 import sys, re
 from collections import defaultdict, OrderedDict
 
+EC_RE = re.compile(r'\d+\.(\d+|-)\.(\d+|-)\.(n?\d+|-)')
+
 gff_file = sys.argv[1]
 tsv_file = sys.argv[2]
 tbl_file = sys.argv[3]
+fasta_file = sys.argv[4] if len(sys.argv) > 4 else None
+
+genome = {}
+if fasta_file:
+    with open(fasta_file) as fh:
+        name, chunks = None, []
+        for line in fh:
+            if line.startswith('>'):
+                if name: genome[name] = ''.join(chunks).upper()
+                name, chunks = line[1:].split()[0], []
+            else:
+                chunks.append(line.strip())
+        if name: genome[name] = ''.join(chunks).upper()
+
+_COMP = str.maketrans('ACGTN', 'TGCAN')
+STOPS = ('TAA', 'TAG', 'TGA')
+
+def cds_partial(seqid, intervals, strand):
+    """Return (partial5, partial3) from the spliced CDS sequence; (False, False) without a genome."""
+    seq = genome.get(seqid)
+    if seq is None or not intervals:
+        return False, False
+    s = ''.join(seq[a - 1:b] for a, b in sorted(intervals))
+    if strand == '-':
+        s = s.translate(_COMP)[::-1]
+    return s[:3] != 'ATG', s[-3:] not in STOPS
 
 # ── 1. Parse annotation TSV ───────────────────────────────────────────────
 ann = {}   # gene_id → dict of curated fields
@@ -33,7 +64,9 @@ with open(tsv_file) as fh:
         ann[gid] = {
             'product':    c[col['product']]         if 'product'           in col else '',
             'symbol':     c[col['gene_symbol']]     if 'gene_symbol'       in col else '',
-            'ec':         [e for e in c[col['EC_numbers']].split(',')  if e] if 'EC_numbers'       in col else [],
+            # strip eggNOG's "ec:" prefix, dedupe, keep only full NCBI-valid ECs (drops "5.6.2.")
+            'ec':         list(dict.fromkeys(e for e in (x.strip().removeprefix('ec:') for x in c[col['EC_numbers']].split(','))
+                                             if EC_RE.fullmatch(e))) if 'EC_numbers' in col else [],
             'go':         [g for g in c[col['GO_terms']].split('|')   if g] if 'GO_terms'          in col else [],
             'interpro':   [i for i in c[col['InterPro_accessions']].split('|') if i] if 'InterPro_accessions' in col else [],
             'pfam':       [p for p in c[col['Pfam_domains']].split('|') if p] if 'Pfam_domains'   in col else [],
@@ -135,14 +168,19 @@ with open(gff_file) as fh:
 # ── 3. Write .tbl ────────────────────────────────────────────────────────
 
 def tbl_coords(intervals, strand):
-    """Return list of (c1, c2) in feature-table orientation."""
+    """Return list of (c1, c2) in feature-table orientation.
+
+    Intervals are listed 5'→3' along the feature, so minus-strand intervals
+    run from the highest coordinate down (NCBI SEQ_FEAT.SeqLocOrder otherwise)."""
     ivs = sorted(intervals, key=lambda x: x[0])
     if strand == '-':
-        return [(s2, s1) for s1, s2 in ivs]
+        return [(s2, s1) for s1, s2 in reversed(ivs)]
     return ivs
 
-def write_feature(out, ftype, intervals, strand, qualifiers):
-    ivs = tbl_coords(intervals, strand)
+def write_feature(out, ftype, intervals, strand, qualifiers, partial5=False, partial3=False):
+    ivs = [list(map(str, iv)) for iv in tbl_coords(intervals, strand)]
+    if partial5: ivs[0][0]  = '<' + ivs[0][0]
+    if partial3: ivs[-1][1] = '>' + ivs[-1][1]
     for i, (c1, c2) in enumerate(ivs):
         if i == 0:
             out.write(f'{c1}\t{c2}\t{ftype}\n')
@@ -155,6 +193,8 @@ def write_feature(out, ftype, intervals, strand, qualifiers):
 def build_note(gid):
     a = ann.get(gid, {})
     parts = []
+    # KEGG is not an NCBI-approved db_xref type (SEQ_FEAT.IllegalDbXref), so KOs go in the note
+    if a.get('kegg_ko'): parts.append('KEGG KO: ' + ','.join(a['kegg_ko']))
     if a.get('smcog'):   parts.append('smCOG: ' + a['smcog'])
     if a.get('bgc_type'): parts.append('Secondary metabolite cluster: ' + a['bgc_type'])
     elif a.get('bgc_role') and a['bgc_role'] != 'other':
@@ -174,23 +214,31 @@ with open(tbl_file, 'w') as out:
             a = ann.get(gid, {})
             product  = best_product(gid)
             symbol   = a.get('symbol', '') or g.symbol or ''
+            if symbol.endswith('-'):   # KEGG EC-style symbols (E2.7.11.-) → SEQ_FEAT.BadTrailingHyphen
+                symbol = ''
             locus    = g.locus_tag
+
+            # A partial end propagates to the gene only when every isoform is partial there
+            parts = {mid: cds_partial(g.seqid, m.cdss, m.strand) for mid, m in g.mrnas.items()}
+            gene_p5 = bool(parts) and all(p[0] for p in parts.values())
+            gene_p3 = bool(parts) and all(p[1] for p in parts.values())
 
             # gene feature — single span
             gene_quals = [('locus_tag', locus)]
             if symbol:
                 gene_quals.append(('gene', symbol))
-            write_feature(out, 'gene', [(g.start, g.stop)], g.strand, gene_quals)
+            write_feature(out, 'gene', [(g.start, g.stop)], g.strand, gene_quals, gene_p5, gene_p3)
 
             for mid, m in g.mrnas.items():
                 exon_ivs = m.exons if m.exons else [(m.start, m.stop)]
                 cds_ivs  = m.cdss  if m.cdss  else []
+                p5, p3 = parts[mid]
 
                 # mRNA feature
                 mrna_quals = [('locus_tag', locus), ('product', product)]
                 if symbol:
                     mrna_quals.insert(0, ('gene', symbol))
-                write_feature(out, 'mRNA', exon_ivs, m.strand, mrna_quals)
+                write_feature(out, 'mRNA', exon_ivs, m.strand, mrna_quals, p5, p3)
 
                 # CDS feature
                 if cds_ivs:
@@ -200,17 +248,17 @@ with open(tbl_file, 'w') as out:
                     cds_quals.append(('locus_tag', locus))
                     cds_quals.append(('product', product))
                     cds_quals.append(('codon_start', '1'))
-                    for ec in a.get('ec', []):
-                        cds_quals.append(('EC_number', ec))
+                    # NCBI rejects EC numbers on hypothetical proteins (SEQ_FEAT.BadProteinName)
+                    if product != 'hypothetical protein':
+                        for ec in a.get('ec', []):
+                            cds_quals.append(('EC_number', ec))
                     for go in a.get('go', []):
                         cds_quals.append(('db_xref', 'GO:' + go if not go.startswith('GO:') else go))
                     for ip in a.get('interpro', []):
                         cds_quals.append(('db_xref', 'InterPro:' + ip if not ip.startswith('IPR') else 'InterPro:' + ip))
-                    for ko in a.get('kegg_ko', []):
-                        cds_quals.append(('db_xref', 'KEGG:' + ko if not ko.startswith('K') else 'KEGG:' + ko))
                     note = build_note(gid)
                     if note:
                         cds_quals.append(('note', note))
-                    write_feature(out, 'CDS', cds_ivs, m.strand, cds_quals)
+                    write_feature(out, 'CDS', cds_ivs, m.strand, cds_quals, p5, p3)
 
 print(f'Wrote {tbl_file}: {sum(len(v) for v in seq_genes.values())} genes across {len(seq_genes)} sequences')

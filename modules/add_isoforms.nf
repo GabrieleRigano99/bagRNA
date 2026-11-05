@@ -18,7 +18,7 @@ process ADD_ISOFORMS {
     def min_tpm  = params.add_isoforms_min_tpm != null ? params.add_isoforms_min_tpm : 1.0
     def tpm_flag = quant_sf.name != 'NO_FILE' ? "--quant-sf ${quant_sf} --min-tpm ${min_tpm}" : ""
     """
-    python3 ${workflow.projectDir}/bin/add_isoforms.py \\
+    add_isoforms.py \\
         ${filtered_pick_gff} \\
         ${td2_genome_gff3} \\
         ${portcullis_beds} \\

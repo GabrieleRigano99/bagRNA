@@ -15,7 +15,7 @@ process ADD_MISSING_LOCI {
 
     script:
     """
-    python3 ${workflow.projectDir}/bin/add_missing_loci.py \\
+    add_missing_loci.py \\
         ${current_gff} \\
         ${td2_genome_gff3} \\
         ${busco_gff} \\

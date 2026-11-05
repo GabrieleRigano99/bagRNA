@@ -27,6 +27,7 @@ process ANNOTATE_FUNCTIONAL {
     path antismash_gbk,      stageAs: 'input_antismash'
     path gene2product_file,  stageAs: 'input_gene2product'
     path id_map,             stageAs: 'input_id_map'
+    path proteins,           stageAs: 'input_proteins.faa'
 
     output:
     path "functional_annotation.tsv", emit: annotation_table
@@ -35,7 +36,7 @@ process ANNOTATE_FUNCTIONAL {
 
     script:
     """
-    python3 ${workflow.projectDir}/bin/merge_functional_annotations.py \\
+    merge_functional_annotations.py \\
         --gff ${gff} \\
         --eggnog ${eggnog_anno} \\
         --interpro ${interpro_tsv} \\
@@ -52,6 +53,7 @@ process ANNOTATE_FUNCTIONAL {
         --antismash-gbk ${antismash_gbk} \\
         --gene2product ${gene2product_file} \\
         --id-map ${id_map} \\
+        --proteins ${proteins} \\
         --out-gff annotated.gff3 \\
         --out-tsv functional_annotation.tsv \\
         --out-stats annotation_stats.txt
