@@ -65,26 +65,42 @@ process NCBI_SUBMISSION {
     sbt_arg = (submission_template.name != 'NO_FILE') ? "-t ${submission_template}" : ''
     """
     # Generate .sqn and .gbf submission files
-    table2asn \\
-        -V vb \\
-        -M n \\
-        -J \\
-        -c fx \\
-        -euk \\
-        ${sbt_arg} \\
-        -gaps-min 10 \\
-        -l paired-ends \\
-        -locus-tag-prefix ${locus_tag} \\
-        -j "[organism=${species}] [strain=${strain}] [gcode=${codon_table}]" \\
-        -i ${fasta} \\
-        -f ${prefix}.tbl \\
-        -o ${prefix}.sqn \\
-        -w ${prefix}.stats \\
-        -Z
+    run_table2asn() {
+        table2asn \\
+            -V vb \\
+            -M n \\
+            -J \\
+            -c fx \\
+            -euk \\
+            ${sbt_arg} \\
+            -gaps-min 10 \\
+            -l paired-ends \\
+            -locus-tag-prefix ${locus_tag} \\
+            -j "[organism=${species}] [strain=${strain}] [gcode=${codon_table}]" \\
+            -i ${fasta} \\
+            -f \$1 \\
+            -o ${prefix}.sqn \\
+            -w ${prefix}.stats \\
+            -Z
+    }
+    run_table2asn ${prefix}.tbl
+
+    # table2asn renames some products to "hypothetical protein"; NCBI then rejects their EC_number.
+    # Drop those ECs from the .tbl and run table2asn once more.
+    if [ -f ${prefix}.gbk ] && [ ! -f ${prefix}.gbf ]; then mv ${prefix}.gbk ${prefix}.gbf; fi
+    if [ -f ${prefix}.gbf ]; then
+        n=\$(strip_ec_from_renamed.sh ${prefix}.gbf ${prefix}.tbl ${prefix}.fixed.tbl)
+        if [ "\$n" -gt 0 ]; then
+            echo "dropping EC_number on \$n CDS renamed to hypothetical protein, rerunning table2asn"
+            mv ${prefix}.tbl ${prefix}.orig.tbl
+            mv ${prefix}.fixed.tbl ${prefix}.tbl
+            run_table2asn ${prefix}.tbl
+        fi
+    fi
 
     # Normalise output extension (.gbk → .gbf differs across table2asn versions)
-    if [ -f ${prefix}.gbk ] && [ ! -f ${prefix}.gbf ]; then
-        mv ${prefix}.gbk ${prefix}.gbf
+    if [ -f ${prefix}.gbk ]; then
+        mv -f ${prefix}.gbk ${prefix}.gbf
     fi
     """
 
