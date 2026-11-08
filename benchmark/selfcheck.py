@@ -18,13 +18,15 @@ def gene(i, a, b, extra=''):
             f'c1\tx\texon\t{a}\t{b}\t.\t+\t.\tID=G{i}-T1.e;Parent=G{i}-T1\n'
             f'c1\tx\tCDS\t{a}\t{b}\t.\t+\t0\tID=G{i}-T1.c;Parent=G{i}-T1\n')
 # gene 1 and 2 share symbol "ABC"; gene 4 ends inside the N gap
-gff = w('a.gff3', gene(1, 1, L, ';gene=ABC') + gene(2, s2, s2 + L - 1, ';gene=ABC') + gene(3, s3, s3 + 14) + gene(4, L - 5, L + 15))
-tsv = w('a.tsv', 'gene_id\tproduct\tgene_symbol\n' + ''.join(f'G{i}\tkinase\t\n' for i in (1, 2, 3, 4)))
+gff = w('a.gff3', gene(1, 1, L, ';gene=ABC') + gene(2, s2, s2 + L - 1, ';gene=ABC') + gene(3, s3, s3 + 14) + gene(4, L - 5, L + 15) + gene(5, 2, L))
+tsv = w('a.tsv', 'gene_id\tproduct\tgene_symbol\n' + ''.join(f'G{i}\tkinase\t\n' for i in (1, 2, 3, 4, 5)))
 out = os.path.join(d, 'o.tbl'); run('gff3_to_tbl.py', gff, tsv, out, fa)
 tbl = open(out).read()
 assert '\t\t\tgene\tABC' not in tbl, 'shared symbol must not be written as /gene'
 assert 'T_4' not in tbl, 'gene ending in an N gap must be left out'
 assert 'T_1' in tbl and 'T_2' in tbl and 'T_3' in tbl
+blk5 = tbl.split('\tgene\n')[[i for i, b in enumerate(tbl.split('\tgene\n')) if 'T_5' in b][0]]
+assert '>' in blk5, 'CDS of length not a multiple of 3 must be marked 3-prime partial (NoStop)'
 
 keep = os.path.join(d, 'k.gff3'); open(os.path.join(d, 'none.txt'), 'w').close()
 run('drop_bad_isoforms.py', gff, fa, os.path.join(d, 'none.txt'), keep, '--all-internal-stops')

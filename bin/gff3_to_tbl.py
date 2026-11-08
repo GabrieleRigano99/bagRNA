@@ -52,7 +52,8 @@ def cds_partial(seqid, intervals, strand):
     s = ''.join(seq[a - 1:b] for a, b in sorted(intervals))
     if strand == '-':
         s = s.translate(_COMP)[::-1]
-    return s[:3] != 'ATG', s[-3:] not in STOPS
+    # a CDS whose length is not a multiple of 3 cannot end in an in-frame stop codon
+    return s[:3] != 'ATG', s[-3:] not in STOPS or len(s) % 3 != 0
 
 # ── 1. Parse annotation TSV ───────────────────────────────────────────────
 ann = {}   # gene_id → dict of curated fields
