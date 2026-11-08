@@ -4,7 +4,13 @@
 Usage: gff3_to_tbl.py <genome.gff3> <functional_annotation.tsv> <out.tbl> [genome.fasta]
 
 With genome.fasta, CDSs lacking an ATG start or a stop codon are written as
-5'/3' partial ('<' / '>'), together with their mRNA and gene.
+5'/3' partial ('<' / '>'), together with their mRNA and gene. Genes with a boundary
+inside an assembly gap (10+ N, table2asn -gaps-min 10) are left out.
+
+A /gene symbol is written only when it names a single locus: table2asn
+cross-references mRNA and CDS to genes by symbol, so a symbol shared by several loci
+picks the wrong (opposite-strand) gene (SEQ_FEAT.GeneXrefStrandProblem). A shared
+symbol goes into the CDS note instead.
 
 The feature table format spec:
     https://www.ncbi.nlm.nih.gov/genbank/feature_table/
@@ -165,6 +171,27 @@ with open(gff_file) as fh:
             if gene_id and par in genes[gene_id].mrnas:
                 genes[gene_id].mrnas[par].cdss.append((start, stop))
 
+# ── 2b. Gene symbols, assembly gaps ─────────────────────────────────────
+
+def gene_symbol(gid):
+    symbol = ann.get(gid, {}).get('symbol', '') or genes[gid].symbol or ''
+    return '' if symbol.endswith('-') else symbol   # KEGG EC-style symbols (E2.7.11.-) → SEQ_FEAT.BadTrailingHyphen
+
+_sym_loci = defaultdict(set)
+for _gid, _g in genes.items():
+    if gene_symbol(_gid): _sym_loci[gene_symbol(_gid)].add(_g.locus_tag)
+shared_symbols = {k for k, v in _sym_loci.items() if len(v) > 1}
+
+_gap_cache = {}
+def in_gap(seqid, pos):
+    if seqid not in _gap_cache:
+        _gap_cache[seqid] = [(m.start() + 1, m.end()) for m in re.finditer('N{10,}', genome.get(seqid, ''))]
+    return any(a <= pos <= b for a, b in _gap_cache[seqid])
+
+def touches_gap(g):
+    ends = [g.start, g.stop] + [x for m in g.mrnas.values() for x in (m.start, m.stop)]
+    return any(in_gap(g.seqid, x) for x in ends)
+
 # ── 3. Write .tbl ────────────────────────────────────────────────────────
 
 def tbl_coords(intervals, strand):
@@ -203,8 +230,10 @@ def build_note(gid):
     if a.get('cazyme'):    parts.append('CAZyme: ' + a['cazyme'])
     if a.get('merops'):    parts.append('Peptidase family ' + a['merops'] + ' (MEROPS)')
     if a.get('secreted'):  parts.append('Predicted secreted protein')
+    if gene_symbol(gid) in shared_symbols: parts.append('gene name: ' + gene_symbol(gid))
     return '; '.join(parts)
 
+n_gap = 0
 with open(tbl_file, 'w') as out:
     for seqid, gid_list in seq_genes.items():
         out.write(f'>Feature {seqid}\n')
@@ -213,10 +242,11 @@ with open(tbl_file, 'w') as out:
             g = genes[gid]
             a = ann.get(gid, {})
             product  = best_product(gid)
-            symbol   = a.get('symbol', '') or g.symbol or ''
-            if symbol.endswith('-'):   # KEGG EC-style symbols (E2.7.11.-) → SEQ_FEAT.BadTrailingHyphen
-                symbol = ''
+            symbol   = '' if gene_symbol(gid) in shared_symbols else gene_symbol(gid)
             locus    = g.locus_tag
+            if genome and touches_gap(g):   # SEQ_FEAT.FeatureBeginsOrEndsInGap
+                n_gap += 1
+                continue
 
             # A partial end propagates to the gene only when every isoform is partial there
             parts = {mid: cds_partial(g.seqid, m.cdss, m.strand) for mid, m in g.mrnas.items()}
@@ -261,4 +291,5 @@ with open(tbl_file, 'w') as out:
                         cds_quals.append(('note', note))
                     write_feature(out, 'CDS', cds_ivs, m.strand, cds_quals, p5, p3)
 
-print(f'Wrote {tbl_file}: {sum(len(v) for v in seq_genes.values())} genes across {len(seq_genes)} sequences')
+print(f'Wrote {tbl_file}: {sum(len(v) for v in seq_genes.values()) - n_gap} genes across {len(seq_genes)} sequences; '
+      f'{n_gap} genes at assembly gaps left out; {len(shared_symbols)} shared gene symbols kept in notes only')
