@@ -26,6 +26,8 @@ case $sp in
   Syncephalastrum_racemosum) strain=NRRL2496;  tag=SYNRAC; busco=mucorales ;;
   *) echo "unknown species $sp" >&2; exit 1 ;;
 esac
+# InterProScan6 merge steps run inside the Nextflow JVM; give it room (default heap = 1/4 of RAM)
+export NXF_OPTS=${NXF_OPTS:--Xmx24g}
 export NXF_VER=${NXF_VER:-25.04.6} JAVA_HOME=${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}
 here=$(cd "$(dirname "$0")/.." && pwd); i=$INPUTS/$sp; o=$RUNS/$sp; mkdir -p "$o"
 cd "$here"
