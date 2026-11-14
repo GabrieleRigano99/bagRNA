@@ -205,6 +205,42 @@ Still stuck? Open an issue: https://github.com/GabrieleRigano99/bagRNA/issues
 
 ---
 
+## Reproduce the benchmark
+
+The six benchmark fungi (Aspergillus aculeatinus, Candida orthopsilosis, Cryptococcus depauperatus, Malassezia globosa,
+Sporothrix schenckii, Syncephalastrum racemosum) can be rebuilt from public data. Measured results, run times and
+known limits are in [`REPRO_REPORT.md`](REPRO_REPORT.md). Plan for 4 to 19 hours per species.
+
+1. **Install the extras.** Besides the Step 1 tools you need `sra-tools` (`prefetch`, `fasterq-dump`), `curl`,
+   `unzip`, and a conda environment with `compleasm` for the BUSCO check.
+2. **Get SignalP 6 and Phobius.** Both are licensed. Download them by hand from their providers and set `SIGNALP`
+   and `PHOBIUS` (see the top of `benchmark/run_species.sh`). Make an NCBI `.sbt` template on the submission portal and
+   set `SBT`.
+3. **Download the reference databases** once with `-entry SETUP` (see Step 3 above) and point `DBS`, `EGGNOG` and
+   `IPS6` at them. This download path was not tested in the validation run.
+4. **Download the inputs.** `benchmark/fetch_inputs.sh /data/inputs` fetches the genomes (NCBI), the UniProt reviewed
+   evidence and the RNA-seq reads (NCBI SRA), and writes `SHA256SUMS`. Add a species name as a second argument to fetch
+   only that species. Allow about 45 GB for the SRA files.
+5. **Run one species from scratch.** `INPUTS=/data/inputs RUNS=/data/runs benchmark/run_species.sh Malassezia_globosa`
+   (Malassezia is the shortest, about 5 h). `benchmark/run_all.sh` queues several species.
+6. **Check the result.** Run `compleasm protein` on `results/structural_annotation/final_proteins.faa`, then
+   `python3 benchmark/check_outputs.py /data/runs Malassezia_globosa --busco /data/busco`. It checks that every task
+   completed, that the NCBI file has no `Error:` line, and that gene count, % KO, % InterPro and BUSCO match the
+   baseline. The exact pass rule is in `REPRO_REPORT.md`.
+
+Notes:
+
+- `run_species.sh` sets `NXF_OPTS=-Xmx24g`. Some InterProScan6 steps run inside the Nextflow JVM and hold files of
+  about 1 GB in memory. With the default heap, Syncephalastrum ran out of memory after 12 h. Keep this setting on
+  machines with 32 GB of RAM or more, and lower it only if you have less.
+- To test the install without running anything heavy, use `-preview` (for example
+  `nextflow run main.nf -preview ...`). `-stub-run` stops at the InterProScan6 `SPLIT_FASTA` step in full functional runs.
+- If `git` says `detected dubious ownership` when you check out a commit on a disk owned by another user, run
+  `git config --global --add safe.directory <path to the repository>` once.
+- Warnings in the NCBI `.val` file (splice-site and short-exon notices) are expected and do not fail a species.
+
+---
+
 ## Reference
 
 ### What it does
