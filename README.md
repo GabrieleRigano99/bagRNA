@@ -105,6 +105,8 @@ cd gui
 
 Open http://localhost:8765 if it does not open by itself. Choose a mode, fill the form, and watch the progress. Details: [`gui/README.md`](gui/README.md).
 
+![bagRNA browser GUI](gui/screenshot.png)
+
 **Option B: the command line.** Pick the mode that fits:
 
 ```
@@ -209,7 +211,7 @@ Still stuck? Open an issue: https://github.com/GabrieleRigano99/bagRNA/issues
 
 The six benchmark fungi (Aspergillus aculeatinus, Candida orthopsilosis, Cryptococcus depauperatus, Malassezia globosa,
 Sporothrix schenckii, Syncephalastrum racemosum) can be rebuilt from public data. Measured results, run times and
-known limits are in [`REPRO_REPORT.md`](REPRO_REPORT.md). Plan for 4 to 19 hours per species.
+known limits are in [`docs/REPRO_REPORT.md`](docs/REPRO_REPORT.md). Plan for 4 to 19 hours per species.
 
 1. **Install the extras.** Besides the Step 1 tools you need `sra-tools` (`prefetch`, `fasterq-dump`), `curl`,
    `unzip`, and a conda environment with `compleasm` for the BUSCO check.
@@ -226,7 +228,7 @@ known limits are in [`REPRO_REPORT.md`](REPRO_REPORT.md). Plan for 4 to 19 hours
 6. **Check the result.** Run `compleasm protein` on `results/structural_annotation/final_proteins.faa`, then
    `python3 benchmark/check_outputs.py /data/runs Malassezia_globosa --busco /data/busco`. It checks that every task
    completed, that the NCBI file has no `Error:` line, and that gene count, % KO, % InterPro and BUSCO match the
-   baseline. The exact pass rule is in `REPRO_REPORT.md`.
+   baseline. The exact pass rule is in `docs/REPRO_REPORT.md`.
 
 Notes:
 
