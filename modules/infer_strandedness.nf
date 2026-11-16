@@ -90,7 +90,7 @@ process INFER_STRANDEDNESS {
             trinity_lib     = 'RF'
         else:
             strandedness    = 'unstranded'
-            orientation     = 'unstranded'
+            orientation     = 'FR'   # Portcullis accepts FR|RF only; 'unstranded' crashed it
             trinity_lib     = ''
     else:
         # Single-end or unparseable → fall back to defaults

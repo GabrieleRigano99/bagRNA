@@ -116,7 +116,7 @@ ${LN}
     ${B}--max_gene_length${R}       Maximum gene length  ${DM}[${params.max_gene_length}]${R}
     ${B}--genomeSAindexNbases${R}   STAR SA index bases  ${DM}[${params.genomeSAindexNbases}]  (reduce for small genomes)${R}
     ${B}--limitBAMsortRAM${R}       STAR BAM sort RAM bytes  ${DM}(auto: 90% of task memory)${R}
-    ${B}--orientation${R}           Override inferred read orientation: FR | RF | unstranded  ${DM}[auto-detected]${R}
+    ${B}--orientation${R}           Override inferred read orientation: FR | RF  ${DM}[auto-detected]${R}
     ${B}--strandedness${R}          Override inferred strandedness: firststrand | secondstrand | unstranded  ${DM}[auto-detected]${R}
 
 ${LN}
